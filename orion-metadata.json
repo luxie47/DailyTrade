@@ -2,11 +2,17 @@
   "id": "com.dailytrade.app",
   "name": "DailyTrade",
   "summary": "100% Free Paper Trading Simulator with Real Live Market Prices",
-  "description": "DailyTrade is a minimalist, open-source paper trading app inspired by TradingView. Practice trading stocks, crypto, crude oil, forex, index mutual funds, and fixed deposits with zero money and zero risk.\n\nKey Highlights:\n- Real-time sub-second Binance WebSocket crypto streaming\n- Live Yahoo Finance feeds for 120+ global assets\n- Pure black OLED minimalist TradingView aesthetic\n- Market orders, limit orders, Stop Loss & Take Profit (OCO)\n- 100% offline-first local storage, zero telemetry, zero account required",
+  "description": "DailyTrade is a minimalist, open-source paper trading app inspired by TradingView. Practice trading stocks, crypto, crude oil, forex, index mutual funds, and fixed deposits with zero money and zero risk.\n\nKey Highlights:\n- Real-time sub-second Binance WebSocket crypto streaming\n- Live Yahoo Finance feeds for 120+ global assets\n- Pure black OLED minimalist TradingView aesthetic\n- Market orders, limit orders, Stop Loss & Take Profit (OCO)\n- 100% offline-first local storage, zero telemetry, zero account required\n\nDeveloper: Luxie47 (luxie47@gmail.com | Discord: Luxie47)\nMain Project: DailyFlow (https://dailyflow-luxie.vercel.app)",
   "versionName": "1.0.0",
   "versionCode": 1,
   "license": "MIT",
-  "website": "https://github.com/dailytrade/dailytrade",
+  "author": {
+    "name": "Luxie47",
+    "email": "luxie47@gmail.com",
+    "discord": "Luxie47",
+    "website": "https://dailyflow-luxie.vercel.app"
+  },
+  "website": "https://dailyflow-luxie.vercel.app",
   "sourceUrl": "https://github.com/dailytrade/dailytrade",
   "issueTracker": "https://github.com/dailytrade/dailytrade/issues",
   "categories": [

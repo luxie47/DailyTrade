@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, RefreshCw, Download, Upload, Check } from 'lucide-react';
+import { Plus, Trash2, RefreshCw, Download, Upload, Check, ExternalLink, Heart, Info } from 'lucide-react';
 import type { Account, Currency } from '../types/account';
 import { CURRENCIES } from '../types/account';
 import { formatCurrency, exportJSON, importJSON } from '../services/storage';
@@ -19,7 +19,7 @@ interface Props {
   onClose: () => void;
 }
 
-type View = 'list' | 'create' | 'topup';
+type View = 'list' | 'create' | 'about';
 
 export function AccountModal({
   accounts, activeAccountId, state,
@@ -29,7 +29,6 @@ export function AccountModal({
   const [newName, setNewName] = useState('');
   const [newCurrency, setNewCurrency] = useState<Currency>('USD');
   const [newCash, setNewCash] = useState('10000');
-  const [topupAmt, setTopupAmt] = useState('');
   const [error, setError] = useState('');
 
   const active = accounts.find(a => a.id === activeAccountId) ?? accounts[0];
@@ -71,6 +70,93 @@ export function AccountModal({
     };
     input.click();
   };
+
+  if (view === 'about') {
+    return (
+      <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+        <div className="modal-sheet" style={{ maxHeight: '85vh', overflowY: 'auto' }}>
+          <div className="row between" style={{ marginBottom: 16 }}>
+            <span className="mono font-bold" style={{ fontSize: 14, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+              ABOUT & SUPPORT
+            </span>
+            <button className="btn btn-ghost" style={{ padding: '4px 8px' }} onClick={() => setView('list')}>
+              BACK
+            </button>
+          </div>
+
+          <div className="col gap-3">
+            {/* Version & Badge */}
+            <div style={{ padding: '12px', background: 'var(--bg-subtle)', border: '1px solid var(--border-dim)' }}>
+              <div className="row between" style={{ alignItems: 'center' }}>
+                <span className="mono font-bold" style={{ fontSize: 14, color: 'var(--text-primary)' }}>DailyTrade</span>
+                <span className="badge badge-neutral" style={{ fontSize: 10 }}>v1.0.0 (Orion Ready)</span>
+              </div>
+              <p style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.4 }}>
+                A high-performance paper trading simulator with real live market feeds and 100% simulated paper money.
+              </p>
+            </div>
+
+            {/* Featured Project: DailyFlow */}
+            <div style={{ padding: '12px', background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
+              <div className="row gap-2" style={{ alignItems: 'center', marginBottom: 4 }}>
+                <Heart size={14} color="#818cf8" />
+                <span className="mono font-bold" style={{ fontSize: 12, color: '#c7d2fe' }}>FEATURED PROJECT: DAILYFLOW</span>
+              </div>
+              <p style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                Check out our flagship hybrid tracking & daily flow productivity system:
+              </p>
+              <a
+                href="https://dailyflow-luxie.vercel.app"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  marginTop: 8,
+                  background: '#4f46e5',
+                  color: '#ffffff',
+                  padding: '7px 12px',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  borderRadius: 2,
+                }}
+              >
+                VISIT DAILYFLOW <ExternalLink size={12} />
+              </a>
+            </div>
+
+            {/* Developer Contact & Donations */}
+            <div style={{ padding: '12px', background: 'var(--bg-subtle)', border: '1px solid var(--border-dim)' }}>
+              <span className="mono font-bold" style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                DEVELOPER & DONATIONS
+              </span>
+              <p style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.4 }}>
+                If you enjoy DailyTrade and would like to support development or donate:
+              </p>
+              <div className="col gap-1" style={{ marginTop: 8, fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+                <div><span style={{ color: 'var(--text-muted)' }}>Discord:</span> <span style={{ color: 'var(--text-primary)' }}>Luxie47</span></div>
+                <div><span style={{ color: 'var(--text-muted)' }}>IGN:</span> <span style={{ color: 'var(--text-primary)' }}>mial / luxiee47</span></div>
+                <div><span style={{ color: 'var(--text-muted)' }}>Email:</span> <a href="mailto:luxie47@gmail.com" style={{ color: '#818cf8', textDecoration: 'none' }}>luxie47@gmail.com</a></div>
+              </div>
+            </div>
+
+            {/* Legal Disclaimer */}
+            <div style={{ padding: '10px 12px', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+              <span className="mono font-bold" style={{ fontSize: 10, color: 'var(--color-bear)', letterSpacing: '0.05em' }}>
+                ⚠️ LEGAL & FINANCIAL DISCLAIMER
+              </span>
+              <p style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.4 }}>
+                DailyTrade is an educational paper trading simulator. All currencies, balances, and orders are 100% virtual simulation credits with zero monetary value. DailyTrade does not provide real investment advice.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (view === 'create') {
     return (
@@ -145,16 +231,21 @@ export function AccountModal({
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal-sheet">
+      <div className="modal-sheet" style={{ maxHeight: '88vh', overflowY: 'auto' }}>
         <div className="row between" style={{ marginBottom: 16 }}>
           <span className="mono font-bold" style={{ fontSize: 14, letterSpacing: '0.05em', textTransform: 'uppercase' }}>ACCOUNTS</span>
-          <button className="btn btn-ghost" style={{ padding: '4px 8px' }} onClick={onClose}>✕</button>
+          <div className="row gap-2">
+            <button className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: 11 }} onClick={() => setView('about')}>
+              <Info size={12} /> ABOUT
+            </button>
+            <button className="btn btn-ghost" style={{ padding: '4px 8px' }} onClick={onClose}>✕</button>
+          </div>
         </div>
 
         {/* Account List */}
         {accounts.map(acc => {
           const isActive = acc.id === activeAccountId;
-          const accCfg = CURRENCIES.find(c => c.code === acc.currency)!;
+          const accCfg = (acc && CURRENCIES.find(c => c.code === acc.currency)) ?? CURRENCIES[0];
           return (
             <div
               key={acc.id}
@@ -276,6 +367,14 @@ export function AccountModal({
             </button>
           </div>
         </div>
+
+        {/* Legal Disclaimer Footer */}
+        <div style={{ marginTop: 16, padding: '8px 10px', background: 'var(--bg-subtle)', border: '1px solid var(--border-dim)' }}>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--text-muted)', lineHeight: 1.4, margin: 0 }}>
+            ⚠️ <strong>Simulator Notice:</strong> Virtual paper money only. Zero financial risk. Not financial advice.
+          </p>
+        </div>
+
         {error && <span style={{ color: 'var(--color-bear)', fontFamily: 'var(--font-mono)', fontSize: 11, marginTop: 8 }}>{error}</span>}
       </div>
     </div>

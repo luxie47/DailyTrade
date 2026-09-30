@@ -1,0 +1,18 @@
+DailyTrade is a fast, minimalist paper trading simulator with real live market feeds and zero real money involved. Practice trading stocks, crypto, crude oil, forex, index mutual funds, and fixed deposits with zero financial risk.
+
+FEATURES:
+• Real-time sub-second Binance WebSocket crypto streaming
+• Live Yahoo Finance quotes for 120+ global assets
+• Pure OLED black brutalist aesthetic inspired by TradingView
+• Realistic order execution: Market orders, Limit orders, Stop Loss & Take Profit with One-Cancels-the-Other (OCO)
+• Multi-currency accounts ($ USD, € EUR, ₹ INR, £ GBP, ¥ JPY)
+• 100% offline-first local storage: zero telemetry, zero accounts required, complete data privacy
+• Import & export portfolio data at any time via JSON
+
+DISCLAIMER:
+DailyTrade is an educational paper trading simulator. All currencies, balances, and trades are strictly virtual simulation credits with zero monetary value. DailyTrade does not provide financial or investment advice.
+
+DEVELOPER & SUPPORT:
+• Developer: Luxie47 (luxie47@gmail.com | Discord: Luxie47)
+• Check out our flagship productivity app: DailyFlow (https://dailyflow-luxie.vercel.app)
+• If you enjoy DailyTrade, please consider supporting development or visiting DailyFlow!
