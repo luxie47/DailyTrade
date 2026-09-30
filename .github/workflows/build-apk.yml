@@ -41,11 +41,11 @@ jobs:
       - name: Build Web Production Assets
         run: npm run build
 
-      - name: Sync Capacitor Android
-        run: npx cap sync android
-
       - name: Grant Execute Permissions for Gradlew
         run: chmod +x android/gradlew
+
+      - name: Sync Capacitor Android
+        run: npx cap sync android
 
       - name: Build Android Debug APK
         run: |
