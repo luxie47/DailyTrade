@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, RefreshCw, Download, Upload, Check, ExternalLink, Heart, Info } from 'lucide-react';
+import { Plus, Trash2, RefreshCw, Download, Upload, Check, ExternalLink, Heart, Info, Star, ShieldCheck, MessageSquare } from 'lucide-react';
 import type { Account, Currency } from '../types/account';
 import { CURRENCIES } from '../types/account';
 import { formatCurrency, exportJSON, importJSON } from '../services/storage';
@@ -9,6 +9,7 @@ interface Props {
   accounts: Account[];
   activeAccountId: string;
   state: AppState;
+  initialView?: View;
   onSwitch: (id: string) => void;
   onCreate: (name: string, currency: Currency, startingCash: number) => void;
   onTopUp: (amount: number) => void;
@@ -19,13 +20,14 @@ interface Props {
   onClose: () => void;
 }
 
-type View = 'list' | 'create' | 'about';
+export type View = 'list' | 'create' | 'about';
 
 export function AccountModal({
-  accounts, activeAccountId, state,
+  accounts, activeAccountId, state, initialView = 'list',
   onSwitch, onCreate, onTopUp, onReset, onDelete, onUpdateCurrency, onImport, onClose
 }: Props) {
-  const [view, setView] = useState<View>('list');
+  const [view, setView] = useState<View>(initialView);
+  const [showPrivacy, setShowPrivacy] = useState(false);
   const [newName, setNewName] = useState('');
   const [newCurrency, setNewCurrency] = useState<Currency>('USD');
   const [newCash, setNewCash] = useState('10000');
@@ -74,10 +76,10 @@ export function AccountModal({
   if (view === 'about') {
     return (
       <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-        <div className="modal-sheet" style={{ maxHeight: '85vh', overflowY: 'auto' }}>
+        <div className="modal-sheet" style={{ maxHeight: '88vh', overflowY: 'auto' }}>
           <div className="row between" style={{ marginBottom: 16 }}>
             <span className="mono font-bold" style={{ fontSize: 14, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-              ABOUT & SUPPORT
+              ABOUT US & OPEN SOURCE
             </span>
             <button className="btn btn-ghost" style={{ padding: '4px 8px' }} onClick={() => setView('list')}>
               BACK
@@ -85,25 +87,60 @@ export function AccountModal({
           </div>
 
           <div className="col gap-3">
-            {/* Version & Badge */}
-            <div style={{ padding: '12px', background: 'var(--bg-subtle)', border: '1px solid var(--border-dim)' }}>
+            {/* Mission Statement */}
+            <div style={{ padding: '14px', background: 'var(--bg-subtle)', border: '1px solid var(--border-bright)' }}>
               <div className="row between" style={{ alignItems: 'center' }}>
                 <span className="mono font-bold" style={{ fontSize: 14, color: 'var(--text-primary)' }}>DailyTrade</span>
-                <span className="badge badge-neutral" style={{ fontSize: 10 }}>v1.0.0 (Orion Ready)</span>
+                <span className="badge badge-neutral" style={{ fontSize: 10 }}>v1.0.0 • ORION READY</span>
               </div>
-              <p style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.4 }}>
-                A high-performance paper trading simulator with real live market feeds and 100% simulated paper money.
+              <p style={{ fontFamily: 'var(--font-ui)', fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.5 }}>
+                We are <strong>open sourcing this app mentally and wholeheartedly for everyone</strong>. Built to provide a clean, uncompromising, 100% free paper trading platform with real live feeds and zero paywalls.
               </p>
             </div>
 
+            {/* ⭐ Star This Repo Banner */}
+            <div style={{ padding: '14px', background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(217, 119, 6, 0.05))', border: '1px solid rgba(245, 158, 11, 0.35)' }}>
+              <div className="row gap-2" style={{ alignItems: 'center' }}>
+                <Star size={16} color="#fbbf24" fill="#fbbf24" />
+                <span className="mono font-bold" style={{ fontSize: 12, color: '#fef3c7', letterSpacing: '0.04em' }}>
+                  PLEASE STAR THIS REPOSITORY!
+                </span>
+              </div>
+              <p style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.4 }}>
+                If you like what we built, giving us a star on GitHub would mean the world to our team. It helps keep this project free and thriving.
+              </p>
+              <a
+                href="https://github.com/dailytrade/dailytrade"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginTop: 10,
+                  background: '#f59e0b',
+                  color: '#000000',
+                  padding: '8px 14px',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 11,
+                  fontWeight: 800,
+                  textDecoration: 'none',
+                  borderRadius: 2,
+                  letterSpacing: '0.05em',
+                }}
+              >
+                <Star size={13} fill="#000" /> STAR ON GITHUB <ExternalLink size={12} />
+              </a>
+            </div>
+
             {/* Featured Project: DailyFlow */}
-            <div style={{ padding: '12px', background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
+            <div style={{ padding: '14px', background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
               <div className="row gap-2" style={{ alignItems: 'center', marginBottom: 4 }}>
                 <Heart size={14} color="#818cf8" />
                 <span className="mono font-bold" style={{ fontSize: 12, color: '#c7d2fe' }}>FEATURED PROJECT: DAILYFLOW</span>
               </div>
               <p style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                Check out our flagship hybrid tracking & daily flow productivity system:
+                Check out my main app <strong>DailyFlow</strong> — a hybrid daily tracker, habit optimizer, and workflow powerhouse:
               </p>
               <a
                 href="https://dailyflow-luxie.vercel.app"
@@ -113,7 +150,7 @@ export function AccountModal({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 6,
-                  marginTop: 8,
+                  marginTop: 10,
                   background: '#4f46e5',
                   color: '#ffffff',
                   padding: '7px 12px',
@@ -128,22 +165,53 @@ export function AccountModal({
               </a>
             </div>
 
-            {/* Developer Contact & Donations */}
+            {/* Bugs, Issues & Suggestions */}
             <div style={{ padding: '12px', background: 'var(--bg-subtle)', border: '1px solid var(--border-dim)' }}>
-              <span className="mono font-bold" style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                DEVELOPER & DONATIONS
-              </span>
-              <p style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.4 }}>
-                If you enjoy DailyTrade and would like to support development or donate:
+              <div className="row gap-2" style={{ alignItems: 'center', marginBottom: 6 }}>
+                <MessageSquare size={13} color="var(--text-primary)" />
+                <span className="mono font-bold" style={{ fontSize: 11, color: 'var(--text-primary)', textTransform: 'uppercase' }}>
+                  BUGS, ISSUES & SUGGESTIONS
+                </span>
+              </div>
+              <p style={{ fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                We are always ready to hear! If you discover any bugs or want to suggest new features, please submit a <strong>Pull Request</strong> or message me directly:
               </p>
               <div className="col gap-1" style={{ marginTop: 8, fontFamily: 'var(--font-mono)', fontSize: 11 }}>
                 <div><span style={{ color: 'var(--text-muted)' }}>Discord:</span> <span style={{ color: 'var(--text-primary)' }}>Luxie47</span></div>
-                <div><span style={{ color: 'var(--text-muted)' }}>IGN:</span> <span style={{ color: 'var(--text-primary)' }}>mial / luxiee47</span></div>
+                <div><span style={{ color: 'var(--text-muted)' }}>IGN / Alias:</span> <span style={{ color: 'var(--text-primary)' }}>mial / luxiee47</span></div>
                 <div><span style={{ color: 'var(--text-muted)' }}>Email:</span> <a href="mailto:luxie47@gmail.com" style={{ color: '#818cf8', textDecoration: 'none' }}>luxie47@gmail.com</a></div>
               </div>
+              <p style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
+                ☕ Want to support or donate? Contact me via Discord or Email. Every bit of support means the world!
+              </p>
             </div>
 
-            {/* Legal Disclaimer */}
+            {/* In-App Privacy Policy Viewer */}
+            <div style={{ padding: '12px', background: 'var(--bg-subtle)', border: '1px solid var(--border-dim)' }}>
+              <div className="row between" style={{ alignItems: 'center', cursor: 'pointer' }} onClick={() => setShowPrivacy(prev => !prev)}>
+                <div className="row gap-2" style={{ alignItems: 'center' }}>
+                  <ShieldCheck size={14} color="#34d399" />
+                  <span className="mono font-bold" style={{ fontSize: 11, color: 'var(--text-primary)' }}>
+                    PRIVACY POLICY (100% ON-DEVICE)
+                  </span>
+                </div>
+                <button className="btn btn-ghost" style={{ padding: '2px 8px', fontSize: 10 }}>
+                  {showPrivacy ? 'COLLAPSE' : 'VIEW DETAILS'}
+                </button>
+              </div>
+
+              {showPrivacy && (
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-dim)', fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  <p style={{ margin: '0 0 6px' }}>• <strong>Zero Tracking:</strong> No analytics, telemetry, cookies, or user profiling.</p>
+                  <p style={{ margin: '0 0 6px' }}>• <strong>No Accounts Required:</strong> You never need to sign up, provide emails, or store passwords.</p>
+                  <p style={{ margin: '0 0 6px' }}>• <strong>Local Sandbox:</strong> All portfolios, balances, and orders stay on your phone or browser.</p>
+                  <p style={{ margin: '0 0 6px' }}>• <strong>Public Market Data:</strong> Quotes stream from Binance & Yahoo public endpoints with zero personal tokens.</p>
+                  <p style={{ margin: 0, color: 'var(--text-muted)' }}>Full policy is tracked in <code>PRIVACY.md</code> under the MIT License.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Legal & Financial Disclaimer */}
             <div style={{ padding: '10px 12px', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
               <span className="mono font-bold" style={{ fontSize: 10, color: 'var(--color-bear)', letterSpacing: '0.05em' }}>
                 ⚠️ LEGAL & FINANCIAL DISCLAIMER

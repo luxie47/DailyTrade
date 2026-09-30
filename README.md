@@ -11,13 +11,21 @@
 [![TradingView Charts](https://img.shields.io/badge/Powered%20By-Lightweight%20Charts-00e676.svg)](https://tradingview.github.io/lightweight-charts/)
 [![Orion Store Ready](https://img.shields.io/badge/Orion%20Store-Ready-purple.svg)](orion-metadata.json)
 [![Build APK](https://github.com/dailytrade/dailytrade/actions/workflows/build-apk.yml/badge.svg)](.github/workflows/build-apk.yml)
+[![GitHub Stars](https://img.shields.io/badge/GitHub-Star%20Repo-f59e0b?logo=github&logoColor=white)](https://github.com/dailytrade/dailytrade)
 
 **A high-performance, minimalist paper trading simulator with real live market feeds and zero real money involved.**  
 *Practice trading stocks, crypto, crude oil, forex, index mutual funds, and fixed deposits with zero risk.*
 
-[Download APK](DailyTrade.apk) • [Featured Project: DailyFlow](https://dailyflow-luxie.vercel.app) • [Features](#-features) • [Data Flow](#-architecture--data-flow) • [Quick Start](#-quick-start) • [Roadmap](#-secure-roadmap) • [Disclaimer](#-legal--financial-disclaimer)
+[Download APK](DailyTrade.apk) • [Featured Project: DailyFlow](https://dailyflow-luxie.vercel.app) • [Star on GitHub](https://github.com/dailytrade/dailytrade) • [Features](#-features) • [Data Flow](#-architecture--data-flow) • [Roadmap](#-secure-roadmap) • [Disclaimer](#-legal--financial-disclaimer)
 
 </div>
+
+---
+
+## ⭐ Please Star This Repository!
+
+> **If you like DailyTrade or find this paper trading simulator useful, please give this repository a ⭐ Star!**  
+> We have open sourced this app mentally and wholeheartedly for everyone. Every single star means the world to our team, validates our effort, and helps more traders discover this free educational tool!
 
 ---
 
@@ -235,14 +243,26 @@ Download `DailyTrade.apk` onto your Android phone. When opening the file, tap "S
 
 ---
 
-## 🤝 Contributing
+## 🤝 Contributing, Bugs & Suggestions
 
-Contributions from the open-source community are very welcome!
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+We are **always ready to hear from you**! Whether you encountered a bug, have an issue with a symbol, or want to suggest new indicators/features:
+
+1. **Found a Bug or Issue?**  
+   Please [open an Issue](https://github.com/dailytrade/dailytrade/issues) with reproduction steps or reach out to us directly so we can resolve it immediately.
+2. **Submit a Pull Request (PR):**  
+   We warmly welcome open-source contributions!
+   * Fork the Project
+   * Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+   * Commit your Changes (`git commit -m 'feat: Add AmazingFeature'`)
+   * Push to the Branch (`git push origin feature/AmazingFeature`)
+   * Open a Pull Request
+3. **Direct Contact for Suggestions & Feedback:**  
+   * **Discord**: `Luxie47`
+   * **IGN / Alias**: `mial` / `luxiee47`
+   * **Email**: [`luxie47@gmail.com`](mailto:luxie47@gmail.com)
+   * **Flagship App**: [DailyFlow](https://dailyflow-luxie.vercel.app)
+
+> 🌟 *Don't forget to **⭐ Star this repository** if you enjoy the app — it truly means the world to us!*
 
 ---
 

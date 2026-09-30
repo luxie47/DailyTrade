@@ -49,6 +49,7 @@ export default function App() {
   const [prices, setPrices] = useState<Record<string, number>>({});
   const [showTradeModal, setShowTradeModal] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [accountModalView, setAccountModalView] = useState<'list' | 'create' | 'about'>('list');
 
   // Favorites state persisted in localStorage
   const [favorites, setFavorites] = useState<string[]>(() => {
@@ -225,7 +226,7 @@ export default function App() {
         account={engine.activeAccount}
         totalEquityUSD={totalEquityUSD}
         unrPnLUSD={unrPnLUSD}
-        onOpenAccountModal={() => setShowAccountModal(true)}
+        onOpenAccountModal={() => { setAccountModalView('list'); setShowAccountModal(true); }}
         onQuickTopUp={(amt) => engine.topUpAccount(amt)}
       />
 
@@ -359,6 +360,7 @@ export default function App() {
               account={engine.activeAccount}
               onClosePosition={engine.closePosition}
               onCancelOrder={engine.cancelOrder}
+              onOpenAbout={() => { setAccountModalView('about'); setShowAccountModal(true); }}
             />
           </div>
         )}
@@ -369,6 +371,7 @@ export default function App() {
         active={tab}
         onChange={(newTab) => {
           if (newTab === 'accounts') {
+            setAccountModalView('list');
             setShowAccountModal(true);
           } else {
             setTab(newTab);
@@ -412,6 +415,7 @@ export default function App() {
           accounts={engine.state.accounts}
           activeAccountId={engine.state.activeAccountId}
           state={engine.state}
+          initialView={accountModalView}
           onSwitch={engine.switchAccount}
           onCreate={engine.createAccount}
           onTopUp={engine.topUpAccount}

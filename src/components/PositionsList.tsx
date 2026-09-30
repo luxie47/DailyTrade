@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, Clock, BarChart2, X } from 'lucide-react';
+import { TrendingUp, TrendingDown, Clock, BarChart2, X, Star, Heart, Info, ExternalLink } from 'lucide-react';
 import type { Position, ClosedTrade, Order } from '../types/trade';
 import type { Account } from '../types/account';
 import { formatCurrency, formatPct } from '../services/storage';
@@ -13,9 +13,10 @@ interface Props {
   account: Account;
   onClosePosition: (posId: string, price: number) => void;
   onCancelOrder?: (orderId: string) => void;
+  onOpenAbout?: () => void;
 }
 
-export function PositionsList({ positions, orders, history, prices, account, onClosePosition, onCancelOrder }: Props) {
+export function PositionsList({ positions, orders, history, prices, account, onClosePosition, onCancelOrder, onOpenAbout }: Props) {
   const totalUnrPnL = positions.reduce((sum, p) => {
     const cur = prices[p.symbol] ?? p.entryPriceUSD;
     return sum + (cur - p.entryPriceUSD) * p.quantity;
@@ -181,6 +182,57 @@ export function PositionsList({ positions, orders, history, prices, account, onC
           </div>
         );
       })}
+
+      {/* ── Open Source & Community Section ── */}
+      <div style={{ margin: '16px 12px 24px', padding: '14px', background: 'var(--bg-card)', border: '1px solid var(--border-dim)' }}>
+        <div className="row between" style={{ alignItems: 'center', marginBottom: 8 }}>
+          <div className="row gap-2" style={{ alignItems: 'center' }}>
+            <Star size={14} color="#f59e0b" fill="#f59e0b" />
+            <span className="mono font-bold" style={{ fontSize: 11, letterSpacing: '0.04em', color: 'var(--text-primary)' }}>
+              OPEN SOURCE SIMULATOR
+            </span>
+          </div>
+          <span className="badge badge-neutral" style={{ fontSize: 9 }}>100% FREE</span>
+        </div>
+
+        <p style={{ fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.45, margin: '0 0 10px' }}>
+          We are open sourcing DailyTrade mentally and freely for everyone! If you find value in this app, <strong>please star our repository on GitHub</strong> — it means the world to our development.
+        </p>
+
+        <div className="row gap-2" style={{ flexWrap: 'wrap', marginBottom: 10 }}>
+          <a
+            href="https://github.com/dailytrade/dailytrade"
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn-outline"
+            style={{ fontSize: 11, padding: '7px 10px', textDecoration: 'none', color: '#fbbf24', borderColor: 'rgba(245, 158, 11, 0.4)' }}
+          >
+            <Star size={12} fill="#fbbf24" /> STAR ON GITHUB
+          </a>
+          <a
+            href="https://dailyflow-luxie.vercel.app"
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn-outline"
+            style={{ fontSize: 11, padding: '7px 10px', textDecoration: 'none', color: '#a5b4fc', borderColor: 'rgba(99, 102, 241, 0.4)' }}
+          >
+            <Heart size={12} color="#818cf8" /> VISIT DAILYFLOW
+          </a>
+          {onOpenAbout && (
+            <button
+              className="btn btn-ghost"
+              style={{ fontSize: 11, padding: '7px 10px' }}
+              onClick={onOpenAbout}
+            >
+              <Info size={12} /> ABOUT & PRIVACY
+            </button>
+          )}
+        </div>
+
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--text-muted)' }}>
+          Developer: Luxie47 (luxie47@gmail.com | Discord: Luxie47) • Educational simulator only.
+        </span>
+      </div>
     </div>
   );
 }
