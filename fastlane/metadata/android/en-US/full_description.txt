@@ -3,7 +3,7 @@ DailyTrade is a fast, minimalist paper trading simulator with real live market f
 FEATURES:
 • Real-time sub-second Binance WebSocket crypto streaming
 • Live Yahoo Finance quotes for 120+ global assets
-• Pure OLED black brutalist aesthetic inspired by TradingView
+• Pure OLED black brutalist theme with professional financial charts
 • Realistic order execution: Market orders, Limit orders, Stop Loss & Take Profit with One-Cancels-the-Other (OCO)
 • Multi-currency accounts ($ USD, € EUR, ₹ INR, £ GBP, ¥ JPY)
 • 100% offline-first local storage: zero telemetry, zero accounts required, complete data privacy
