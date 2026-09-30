@@ -9,7 +9,7 @@
 [![Capacitor](https://img.shields.io/badge/Capacitor-Android-119eff.svg?logo=capacitor&logoColor=white)](https://capacitorjs.com/)
 [![Android APK](https://img.shields.io/badge/APK-v1.0.0-3DDC84.svg?logo=android&logoColor=white)](DailyTrade.apk)
 [![TradingView Charts](https://img.shields.io/badge/Powered%20By-Lightweight%20Charts-00e676.svg)](https://tradingview.github.io/lightweight-charts/)
-[![Orion Store Ready](https://img.shields.io/badge/Orion%20Store-Ready-purple.svg)](orion-metadata.json)
+[![Get it on Orion Store](https://img.shields.io/badge/Get%20it%20on-Orion%20Store-7c3aed.svg)](orion-metadata.json)
 [![Build APK](https://github.com/luxie47/DailyTrade/actions/workflows/build-apk.yml/badge.svg)](.github/workflows/build-apk.yml)
 [![GitHub Stars](https://img.shields.io/badge/GitHub-Star%20Repo-f59e0b?logo=github&logoColor=white)](https://github.com/luxie47/DailyTrade)
 
@@ -67,7 +67,7 @@ If you find DailyTrade helpful or want to support ongoing open-source developmen
 * **Realistic Order Simulation**: Market orders, Limit orders, Stop Loss & Take Profit (with true One-Cancels-the-Other / OCO cleanup).
 * **Multi-Currency Accounts**: Switch seamlessly between `$ USD`, `€ EUR`, `₹ INR`, `£ GBP`, and `¥ JPY` with auto-converted portfolio analytics.
 * **Automated Fast APK Generation**: GitHub Actions workflow compiles and packages `DailyTrade.apk` in under 3 minutes on every release.
-* **Orion Store Ready**: Includes full `orion-metadata.json`, Fastlane metadata, and PWA manifest for instant installation.
+* **Offline-First & PWA Install**: 100% on-device local storage, zero telemetry, and 1-click installable as a Progressive Web App on mobile & desktop browsers.
 
 ---
 
@@ -138,6 +138,13 @@ DailyTrade includes a turnkey GitHub Actions CI/CD pipeline in [`.github/workflo
   ```
   The APK is placed directly in the project root as `DailyTrade.apk`.
 
+<div align="center" style="margin-top: 16px;">
+
+[![Download APK](https://img.shields.io/badge/Download-DailyTrade.apk-3DDC84?style=for-the-badge&logo=android&logoColor=white)](DailyTrade.apk)
+[![Get it on Orion Store](https://img.shields.io/badge/Get%20it%20on-Orion%20Store-7c3aed?style=for-the-badge&logoColor=white)](orion-metadata.json)
+
+</div>
+
 ---
 
 ## 🚀 Quick Start (Development)
@@ -164,16 +171,6 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 ```bash
 npm run build
 ```
-
----
-
-## 🌌 Orion Store & Open-Source Catalog Readiness
-
-DailyTrade is configured out of the box for immediate inclusion in privacy-centric app repositories:
-* **Orion Store Metadata**: Defined in [`orion-metadata.json`](orion-metadata.json).
-* **Fastlane Directory**: Standard listing structure located at [`fastlane/metadata/android/en-US/`](fastlane/metadata/android/en-US/).
-* **PWA Web App Manifest**: [`public/manifest.json`](public/manifest.json) configured with standalone display mode, dark UI status bar, and maskable icons.
-* **Zero Anti-Features**: Zero proprietary trackers, zero Google Mobile Services (GMS) dependencies.
 
 ---
 

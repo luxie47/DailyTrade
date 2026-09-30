@@ -91,7 +91,7 @@ export function AccountModal({
             <div style={{ padding: '14px', background: 'var(--bg-subtle)', border: '1px solid var(--border-bright)' }}>
               <div className="row between" style={{ alignItems: 'center' }}>
                 <span className="mono font-bold" style={{ fontSize: 14, color: 'var(--text-primary)' }}>DailyTrade</span>
-                <span className="badge badge-neutral" style={{ fontSize: 10 }}>v1.0.0 • ORION READY</span>
+                <span className="badge badge-neutral" style={{ fontSize: 10 }}>v1.0.0</span>
               </div>
               <p style={{ fontFamily: 'var(--font-ui)', fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.5 }}>
                 We are <strong>open sourcing this app mentally and wholeheartedly for everyone</strong>. Built to provide a clean, uncompromising, 100% free paper trading platform with real live feeds and zero paywalls.
