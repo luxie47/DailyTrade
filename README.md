@@ -138,10 +138,12 @@ DailyTrade includes a turnkey GitHub Actions CI/CD pipeline in [`.github/workflo
   ```
   The APK is placed directly in the project root as `DailyTrade.apk`.
 
-<div align="center" style="margin-top: 16px;">
+<div align="center" style="margin-top: 18px; display: flex; justify-content: center; align-items: center; gap: 14px; flex-wrap: wrap;">
 
 [![Download APK](https://img.shields.io/badge/Download-DailyTrade.apk-3DDC84?style=for-the-badge&logo=android&logoColor=white)](DailyTrade.apk)
-[![Get it on Orion Store](https://img.shields.io/badge/Get%20it%20on-Orion%20Store-7c3aed?style=for-the-badge&logoColor=white)](orion-metadata.json)
+<a href="orion-metadata.json">
+  <img src="https://raw.githubusercontent.com/RookieEnough/Orion-Store/refs/heads/main/assets/orion-badge.png" alt="Get it on Orion Store" height="42" />
+</a>
 
 </div>
 
