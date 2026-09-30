@@ -1,0 +1,20 @@
+{
+  "id": "com.dailytrade.app",
+  "name": "DailyTrade",
+  "summary": "100% Free Paper Trading Simulator with Real Live Market Prices",
+  "description": "DailyTrade is a minimalist, open-source paper trading app inspired by TradingView. Practice trading stocks, crypto, crude oil, forex, index mutual funds, and fixed deposits with zero money and zero risk.\n\nKey Highlights:\n- Real-time sub-second Binance WebSocket crypto streaming\n- Live Yahoo Finance feeds for 120+ global assets\n- Pure black OLED minimalist TradingView aesthetic\n- Market orders, limit orders, Stop Loss & Take Profit (OCO)\n- 100% offline-first local storage, zero telemetry, zero account required",
+  "versionName": "1.0.0",
+  "versionCode": 1,
+  "license": "MIT",
+  "website": "https://github.com/dailytrade/dailytrade",
+  "sourceUrl": "https://github.com/dailytrade/dailytrade",
+  "issueTracker": "https://github.com/dailytrade/dailytrade/issues",
+  "categories": [
+    "Finance",
+    "Trading",
+    "Education",
+    "Tools"
+  ],
+  "apkUrl": "https://github.com/dailytrade/dailytrade/releases/latest/download/DailyTrade.apk",
+  "antiFeatures": []
+}

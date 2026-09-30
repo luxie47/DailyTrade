@@ -1,0 +1,34 @@
+// ─── Asset Types ──────────────────────────────────────────────────────────
+
+export type AssetClass = 'crypto' | 'stock' | 'commodity' | 'fund' | 'forex' | 'fixed-income';
+
+export interface Asset {
+  symbol: string;       // e.g. 'BTCUSDT', 'AAPL', 'GC=F'
+  name: string;
+  class: AssetClass;
+  quoteSymbol: string;  // symbol used for fetching
+  iconLetters: string;  // 2-3 chars shown in circle
+  iconColor?: string;
+}
+
+export interface Quote {
+  symbol: string;
+  price: number;
+  change: number;      // absolute change
+  changePct: number;   // percentage change
+  high24h: number;
+  low24h: number;
+  volume: number;
+  timestamp: number;
+}
+
+export type Timeframe = '1m' | '5m' | '15m' | '1h' | '1D';
+
+export interface Candle {
+  time: number;   // Unix seconds (lightweight-charts format)
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume?: number;
+}

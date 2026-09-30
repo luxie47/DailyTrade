@@ -1,0 +1,360 @@
+/* ============================================
+   DailyTrade — OLED Brutalist Design System v2
+   FONT HIERARCHY:
+     Inter       → UI labels, names, nav, descriptions  
+     JetBrains   → Numbers, prices, tickers, % changes
+   ============================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+  --bg-canvas:   #000000;
+  --bg-card:     #0a0a0c;
+  --bg-subtle:   #111115;
+  --bg-hover:    #18181d;
+  --bg-active:   #22222a;
+
+  --border-dim:    rgba(255,255,255,0.07);
+  --border-mid:    rgba(255,255,255,0.14);
+  --border-bright: rgba(255,255,255,0.45);
+  --radius: 0px;
+
+  /* ── Font stacks (TradingView Minimalist) ── */
+  --font-ui:   'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Roboto Mono', Menlo, Consolas, monospace;
+
+  /* ── Text colours ── */
+  --text-primary:   #f0f0f2;
+  --text-secondary: #9494a0;
+  --text-muted:     #4a4a58;
+  --text-inverted:  #000000;
+
+  /* ── Trading colours ── */
+  --color-bull:   #00e676;
+  --color-bear:   #ff3d71;
+  --color-gold:   #f59e0b;
+  --color-blue:   #3b82f6;
+  --bg-bull: rgba(0,230,118,0.09);
+  --bg-bear: rgba(255,61,113,0.09);
+
+  /* ── Layout ── */
+  --header-h:     56px;
+  --bottomnav-h:  62px;
+  --safe-bottom:  env(safe-area-inset-bottom, 0px);
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.45;
+  letter-spacing: -0.012em;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+}
+
+/* ── Scrollbars ── */
+::-webkit-scrollbar { width: 2px; height: 2px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-mid); }
+
+/* ── Typography helpers ── */
+.mono       { font-family: var(--font-mono); }
+.ui         { font-family: var(--font-ui); }
+.bull       { color: var(--color-bull); }
+.bear       { color: var(--color-bear); }
+.muted      { color: var(--text-muted); }
+.secondary  { color: var(--text-secondary); }
+
+/* Price / number text — always mono, tabular */
+.price {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+}
+
+/* Ticker badge text */
+.ticker {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* ── App shell ── */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--bg-canvas);
+  position: relative;
+}
+
+.app-header {
+  height: var(--header-h);
+  border-bottom: 1px solid var(--border-dim);
+  flex-shrink: 0;
+}
+
+.app-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.app-bottom-nav {
+  height: calc(var(--bottomnav-h) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  border-top: 1px solid var(--border-dim);
+  flex-shrink: 0;
+}
+
+@media (min-width: 480px) {
+  .app-shell {
+    border-left: 1px solid var(--border-dim);
+    border-right: 1px solid var(--border-dim);
+  }
+}
+
+/* ── Brutalist card ── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  padding: 16px;
+}
+
+/* ── Buttons — Inter labels, Mono numbers ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--border-mid);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 8px 14px;
+  transition: background 0.1s, border-color 0.1s;
+  white-space: nowrap;
+  user-select: none;
+}
+.btn:active { transform: scale(0.97); }
+.btn:hover  { background: var(--bg-hover); }
+
+.btn-bull {
+  background: var(--color-bull);
+  border-color: var(--color-bull);
+  color: #000;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.btn-bull:hover { opacity: 0.88; background: var(--color-bull); }
+
+.btn-bear {
+  background: var(--color-bear);
+  border-color: var(--color-bear);
+  color: #fff;
+  font-weight: 700;
+}
+.btn-bear:hover { opacity: 0.88; background: var(--color-bear); }
+
+.btn-outline {
+  border-color: var(--border-dim);
+  color: var(--text-secondary);
+}
+.btn-outline:hover { border-color: var(--border-mid); color: var(--text-primary); }
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--text-secondary);
+}
+.btn-ghost:hover { border-color: var(--border-dim); color: var(--text-primary); }
+
+.btn-white {
+  background: #fff;
+  border-color: #fff;
+  color: #000;
+  font-weight: 700;
+}
+
+/* ── Badge / Tag ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border: 1px solid currentColor;
+}
+.badge-bull   { color: var(--color-bull); background: var(--bg-bull);  border-color: rgba(0,230,118,0.4); }
+.badge-bear   { color: var(--color-bear); background: var(--bg-bear);  border-color: rgba(255,61,113,0.4); }
+.badge-neutral{ color: var(--text-muted); border-color: var(--border-dim); }
+
+/* ── Input ── */
+.input {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-mid);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  padding: 10px 12px;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.15s;
+  border-radius: 0;
+}
+.input:focus       { border-color: var(--border-bright); }
+.input::placeholder{ color: var(--text-muted); font-family: var(--font-ui); }
+
+/* ── Separator ── */
+.sep { height: 1px; background: var(--border-dim); margin: 16px 0; }
+
+/* ── Flex helpers ── */
+.row     { display: flex; align-items: center; }
+.col     { display: flex; flex-direction: column; }
+.gap-1   { gap: 4px;  } .gap-2 { gap: 8px;  }
+.gap-3   { gap: 12px; } .gap-4 { gap: 16px; }
+.between { justify-content: space-between; }
+.center  { justify-content: center; }
+.flex-1  { flex: 1; }
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.88);
+  z-index: 100;
+  display: flex; align-items: flex-end; justify-content: center;
+  animation: fadeIn 0.15s ease;
+}
+.modal-sheet {
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-mid);
+  width: 100%; max-width: 480px;
+  max-height: 92vh; overflow-y: auto;
+  padding: 20px 16px;
+  animation: slideUp 0.22s cubic-bezier(0.16,1,0.3,1);
+}
+@keyframes slideUp  { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes fadeIn   { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── Live dot ── */
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--color-bull);
+  animation: pulse 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+/* ── Asset row in lists ── */
+.asset-row {
+  display: flex; align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-dim);
+  cursor: pointer;
+  transition: background 0.08s;
+  gap: 10px;
+}
+.asset-row:hover  { background: var(--bg-hover); }
+.asset-row:active { background: var(--bg-active); }
+.asset-row.selected {
+  background: var(--bg-hover);
+  border-left: 2px solid var(--text-primary);
+  padding-left: 12px;
+}
+
+/* ── Asset icon circle ── */
+.asset-icon {
+  width: 38px; height: 38px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 9px; font-weight: 700; letter-spacing: 0;
+  text-transform: uppercase;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-mid);
+  flex-shrink: 0;
+}
+
+/* ── Tab bar (markets/timeframe) ── */
+.tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--border-dim);
+  overflow-x: auto; scrollbar-width: none;
+  flex-shrink: 0;
+}
+.tab-bar::-webkit-scrollbar { display: none; }
+
+.tab-btn {
+  background: none; border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.03em; text-transform: uppercase;
+  padding: 10px 14px;
+  cursor: pointer; white-space: nowrap;
+  transition: color 0.12s, border-color 0.12s;
+  user-select: none;
+}
+.tab-btn:hover  { color: var(--text-secondary); }
+.tab-btn.active { color: var(--text-primary); border-bottom-color: #fff; }
+
+/* ── Progress bar ── */
+.progress-bar   { height: 2px; background: var(--bg-subtle); }
+.progress-fill  { height: 100%; background: var(--color-bull); transition: width 0.5s; }
+
+/* ── P&L tick flash ── */
+@keyframes tickUp   { 0%,100% { color: inherit; } 50% { color: var(--color-bull); } }
+@keyframes tickDown { 0%,100% { color: inherit; } 50% { color: var(--color-bear); } }
+.tick-up   { animation: tickUp   0.45s ease; }
+.tick-down { animation: tickDown 0.45s ease; }
+
+/* ── Search bar ── */
+.search-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-dim);
+  background: var(--bg-canvas);
+  position: sticky; top: 0; z-index: 10;
+}
+.search-input {
+  background: transparent; border: none; outline: none;
+  color: var(--text-primary);
+  font-family: var(--font-ui); font-size: 14px;
+  flex: 1;
+}
+.search-input::placeholder { color: var(--text-muted); }
+
+/* ── Empty state ── */
+.empty-state {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 48px 24px; gap: 10px;
+  color: var(--text-muted); text-align: center;
+  font-family: var(--font-ui); font-size: 13px;
+}

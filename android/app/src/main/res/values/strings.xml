@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">DailyTrade</string>
+    <string name="title_activity_main">DailyTrade</string>
+    <string name="package_name">com.dailytrade.app</string>
+    <string name="custom_url_scheme">com.dailytrade.app</string>
+</resources>
