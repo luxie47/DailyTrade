@@ -41,6 +41,7 @@ DailyTrade's entire source code is publicly accessible and licensed under the pe
 
 ## 5. Contact & Support
 If you have any questions or feedback regarding this Privacy Policy or DailyTrade:
+* **GitHub**: [@luxie47](https://github.com/luxie47)
 * **Discord**: `Luxie47`
 * **Email**: `luxie47@gmail.com`
 * **Developer Project**: [DailyFlow](https://dailyflow-luxie.vercel.app)

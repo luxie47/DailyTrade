@@ -13,14 +13,14 @@
     "website": "https://dailyflow-luxie.vercel.app"
   },
   "website": "https://dailyflow-luxie.vercel.app",
-  "sourceUrl": "https://github.com/dailytrade/dailytrade",
-  "issueTracker": "https://github.com/dailytrade/dailytrade/issues",
+  "sourceUrl": "https://github.com/luxie47/DailyTrade",
+  "issueTracker": "https://github.com/luxie47/DailyTrade/issues",
   "categories": [
     "Finance",
     "Trading",
     "Education",
     "Tools"
   ],
-  "apkUrl": "https://github.com/dailytrade/dailytrade/releases/latest/download/DailyTrade.apk",
+  "apkUrl": "https://github.com/luxie47/DailyTrade/releases/latest/download/DailyTrade.apk",
   "antiFeatures": []
 }

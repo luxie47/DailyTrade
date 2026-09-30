@@ -110,7 +110,7 @@ export function AccountModal({
                 If you like what we built, giving us a star on GitHub would mean the world to our team. It helps keep this project free and thriving.
               </p>
               <a
-                href="https://github.com/dailytrade/dailytrade"
+                href="https://github.com/luxie47/DailyTrade"
                 target="_blank"
                 rel="noreferrer"
                 style={{
@@ -177,8 +177,8 @@ export function AccountModal({
                 We are always ready to hear! If you discover any bugs or want to suggest new features, please submit a <strong>Pull Request</strong> or message me directly:
               </p>
               <div className="col gap-1" style={{ marginTop: 8, fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+                <div><span style={{ color: 'var(--text-muted)' }}>GitHub:</span> <a href="https://github.com/luxie47/DailyTrade" target="_blank" rel="noreferrer" style={{ color: '#818cf8', textDecoration: 'none' }}>luxie47/DailyTrade</a></div>
                 <div><span style={{ color: 'var(--text-muted)' }}>Discord:</span> <span style={{ color: 'var(--text-primary)' }}>Luxie47</span></div>
-                <div><span style={{ color: 'var(--text-muted)' }}>IGN / Alias:</span> <span style={{ color: 'var(--text-primary)' }}>mial / luxiee47</span></div>
                 <div><span style={{ color: 'var(--text-muted)' }}>Email:</span> <a href="mailto:luxie47@gmail.com" style={{ color: '#818cf8', textDecoration: 'none' }}>luxie47@gmail.com</a></div>
               </div>
               <p style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>

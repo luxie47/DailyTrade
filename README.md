@@ -10,13 +10,13 @@
 [![Android APK](https://img.shields.io/badge/APK-v1.0.0-3DDC84.svg?logo=android&logoColor=white)](DailyTrade.apk)
 [![TradingView Charts](https://img.shields.io/badge/Powered%20By-Lightweight%20Charts-00e676.svg)](https://tradingview.github.io/lightweight-charts/)
 [![Orion Store Ready](https://img.shields.io/badge/Orion%20Store-Ready-purple.svg)](orion-metadata.json)
-[![Build APK](https://github.com/dailytrade/dailytrade/actions/workflows/build-apk.yml/badge.svg)](.github/workflows/build-apk.yml)
-[![GitHub Stars](https://img.shields.io/badge/GitHub-Star%20Repo-f59e0b?logo=github&logoColor=white)](https://github.com/dailytrade/dailytrade)
+[![Build APK](https://github.com/luxie47/DailyTrade/actions/workflows/build-apk.yml/badge.svg)](.github/workflows/build-apk.yml)
+[![GitHub Stars](https://img.shields.io/badge/GitHub-Star%20Repo-f59e0b?logo=github&logoColor=white)](https://github.com/luxie47/DailyTrade)
 
 **A high-performance, minimalist paper trading simulator with real live market feeds and zero real money involved.**  
 *Practice trading stocks, crypto, crude oil, forex, index mutual funds, and fixed deposits with zero risk.*
 
-[Download APK](DailyTrade.apk) • [Featured Project: DailyFlow](https://dailyflow-luxie.vercel.app) • [Star on GitHub](https://github.com/dailytrade/dailytrade) • [Features](#-features) • [Data Flow](#-architecture--data-flow) • [Roadmap](#-secure-roadmap) • [Disclaimer](#-legal--financial-disclaimer)
+[Download APK](DailyTrade.apk) • [Featured Project: DailyFlow](https://dailyflow-luxie.vercel.app) • [Star on GitHub](https://github.com/luxie47/DailyTrade) • [Features](#-features) • [Data Flow](#-architecture--data-flow) • [Roadmap](#-secure-roadmap) • [Disclaimer](#-legal--financial-disclaimer)
 
 </div>
 
@@ -52,8 +52,8 @@
 
 ### ☕ Support Ongoing Development / Donate
 If you find DailyTrade helpful or want to support ongoing open-source development for **DailyTrade** and **DailyFlow**, donations are deeply appreciated! To donate or get in touch:
+* **GitHub**: [@luxie47](https://github.com/luxie47)
 * **Discord**: `Luxie47`
-* **In-Game / Alias**: `mial` / `luxiee47`
 * **Email**: [`luxie47@gmail.com`](mailto:luxie47@gmail.com)
 
 ---
@@ -149,7 +149,7 @@ DailyTrade includes a turnkey GitHub Actions CI/CD pipeline in [`.github/workflo
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/your-username/DailyTrade.git
+git clone https://github.com/luxie47/DailyTrade.git
 cd DailyTrade
 npm install
 ```
@@ -248,7 +248,7 @@ Download `DailyTrade.apk` onto your Android phone. When opening the file, tap "S
 We are **always ready to hear from you**! Whether you encountered a bug, have an issue with a symbol, or want to suggest new indicators/features:
 
 1. **Found a Bug or Issue?**  
-   Please [open an Issue](https://github.com/dailytrade/dailytrade/issues) with reproduction steps or reach out to us directly so we can resolve it immediately.
+   Please [open an Issue](https://github.com/luxie47/DailyTrade/issues) with reproduction steps or reach out to us directly so we can resolve it immediately.
 2. **Submit a Pull Request (PR):**  
    We warmly welcome open-source contributions!
    * Fork the Project
@@ -257,8 +257,8 @@ We are **always ready to hear from you**! Whether you encountered a bug, have an
    * Push to the Branch (`git push origin feature/AmazingFeature`)
    * Open a Pull Request
 3. **Direct Contact for Suggestions & Feedback:**  
+   * **GitHub**: [@luxie47](https://github.com/luxie47)
    * **Discord**: `Luxie47`
-   * **IGN / Alias**: `mial` / `luxiee47`
    * **Email**: [`luxie47@gmail.com`](mailto:luxie47@gmail.com)
    * **Flagship App**: [DailyFlow](https://dailyflow-luxie.vercel.app)
 

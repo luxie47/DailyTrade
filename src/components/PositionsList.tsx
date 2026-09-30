@@ -201,7 +201,7 @@ export function PositionsList({ positions, orders, history, prices, account, onC
 
         <div className="row gap-2" style={{ flexWrap: 'wrap', marginBottom: 10 }}>
           <a
-            href="https://github.com/dailytrade/dailytrade"
+            href="https://github.com/luxie47/DailyTrade"
             target="_blank"
             rel="noreferrer"
             className="btn btn-outline"
