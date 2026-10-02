@@ -19,7 +19,7 @@ import type { Asset, Timeframe } from './types/market';
 import { formatCurrency, type AppState } from './services/storage';
 import {
   fetchBinanceCandles, fetchCandles, fetchYahooQuote,
-  subscribeLiveQuote, startSyntheticTicks,
+  subscribeLiveQuote, subscribeAllQuotes, startSyntheticTicks,
 } from './services/marketData';
 import type { Candle } from './types/market';
 import { Info, Download } from 'lucide-react';
@@ -101,18 +101,31 @@ export default function App() {
 
   // Load historical candles whenever asset or timeframe changes
   useEffect(() => {
+    const controller = new AbortController();
     setLoading(true);
     setCandles([]);
     const isCrypto = selectedAsset.class === 'crypto';
     const loadCandles = isCrypto
-      ? fetchBinanceCandles(selectedAsset.quoteSymbol, timeframe)
-      : fetchCandles(selectedAsset.quoteSymbol, timeframe);
+      ? fetchBinanceCandles(selectedAsset.quoteSymbol, timeframe, controller.signal)
+      : fetchCandles(selectedAsset.quoteSymbol, timeframe, controller.signal);
 
     loadCandles.then(data => {
       setCandles(data);
       setLoading(false);
+    }).catch(() => {
+      // Aborted — do nothing, a new fetch is already in flight
     });
+
+    return () => controller.abort();
   }, [selectedAsset, timeframe]);
+
+  // Always-on crypto price stream at App level (not torn down on tab switch)
+  useEffect(() => {
+    const unsub = subscribeAllQuotes((q) => {
+      handlePricesUpdate({ [q.symbol]: q.price });
+    });
+    return unsub;
+  }, [handlePricesUpdate]);
 
   // Subscribe live price for selected asset
   useEffect(() => {
@@ -342,7 +355,7 @@ export default function App() {
         {tab === 'portfolio' && (
           <div className="col" style={{ height: '100%', overflowY: 'auto' }}>
             <PortfolioChart
-              history={engine.state.equityHistory}
+              history={engine.state.equityHistory[engine.state.activeAccountId] ?? []}
               account={engine.activeAccount}
               totalEquityUSD={totalEquityUSD}
             />
@@ -416,7 +429,7 @@ export default function App() {
           activeAccountId={engine.state.activeAccountId}
           state={engine.state}
           initialView={accountModalView}
-          onSwitch={engine.switchAccount}
+          onSwitch={(id) => { engine.switchAccount(id); setLivePrice(null); }}
           onCreate={engine.createAccount}
           onTopUp={engine.topUpAccount}
           onReset={engine.resetAccount}

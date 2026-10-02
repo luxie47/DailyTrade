@@ -112,15 +112,17 @@ function getYahooUrls(path: string): string[] {
   return urls;
 }
 
-async function fetchYahooJson(path: string): Promise<any> {
+async function fetchYahooJson(path: string, signal?: AbortSignal): Promise<any> {
   const urls = getYahooUrls(path);
   for (const u of urls) {
     try {
-      const res = await fetch(u, { signal: AbortSignal.timeout(6000) });
+      const fetchSignal = signal ?? AbortSignal.timeout(6000);
+      const res = await fetch(u, { signal: fetchSignal });
       if (!res.ok) continue;
       const json = await res.json();
       if (json?.chart?.result?.[0]) return json;
-    } catch {
+    } catch (e: any) {
+      if (e?.name === 'AbortError') throw e; // propagate abort, don't swallow
       // try next fallback
     }
   }
@@ -173,11 +175,18 @@ export async function fetchBatchYahooQuotes(symbols: string[]): Promise<Record<s
   return out;
 }
 
+// ─── Candle Cache (5-minute TTL) ─────────────────────────────────────────────
+const candleCache = new Map<string, { data: Candle[]; ts: number }>();
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
 // ─── Historical Candles ───────────────────────────────────────────────────────
-export async function fetchCandles(symbol: string, tf: Timeframe): Promise<Candle[]> {
+export async function fetchCandles(symbol: string, tf: Timeframe, signal?: AbortSignal): Promise<Candle[]> {
+  const cacheKey = `${symbol}-${tf}`;
+  const cached = candleCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return cached.data;
   try {
     const { interval, range } = TF_PARAMS[tf];
-    const json = await fetchYahooJson(`/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`);
+    const json = await fetchYahooJson(`/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`, signal);
     if (!json) return generateFallbackCandles(symbol, tf);
 
     const result = json?.chart?.result?.[0];
@@ -196,8 +205,11 @@ export async function fetchCandles(symbol: string, tf: Timeframe): Promise<Candl
       volume: ohlcv.volume?.[i] ?? 0,
     })).filter(c => c.open > 0 && c.close > 0);
 
-    return validCandles.length > 5 ? validCandles : generateFallbackCandles(symbol, tf);
-  } catch {
+    const result2 = validCandles.length > 5 ? validCandles : generateFallbackCandles(symbol, tf);
+    candleCache.set(cacheKey, { data: result2, ts: Date.now() });
+    return result2;
+  } catch (e: any) {
+    if (e?.name === 'AbortError') throw e;
     return generateFallbackCandles(symbol, tf);
   }
 }
@@ -207,14 +219,18 @@ const BINANCE_TF: Record<Timeframe, string> = {
   '1m': '1m', '5m': '5m', '15m': '15m', '1h': '1h', '1D': '1d'
 };
 
-export async function fetchBinanceCandles(symbol: string, tf: Timeframe): Promise<Candle[]> {
+export async function fetchBinanceCandles(symbol: string, tf: Timeframe, signal?: AbortSignal): Promise<Candle[]> {
+  const cacheKey = `${symbol}-${tf}`;
+  const cached = candleCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return cached.data;
   try {
     const limit = tf === '1D' ? 365 : 150;
     const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${BINANCE_TF[tf]}&limit=${limit}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    const combinedSignal = signal ?? AbortSignal.timeout(8000);
+    const res = await fetch(url, { signal: combinedSignal });
     if (!res.ok) return generateFallbackCandles(symbol, tf);
     const data: number[][] = await res.json();
-    return data.map(k => ({
+    const candles = data.map(k => ({
       time:   Math.floor(k[0] / 1000),
       open:   parseFloat(k[1] as unknown as string),
       high:   parseFloat(k[2] as unknown as string),
@@ -222,7 +238,10 @@ export async function fetchBinanceCandles(symbol: string, tf: Timeframe): Promis
       close:  parseFloat(k[4] as unknown as string),
       volume: parseFloat(k[5] as unknown as string),
     }));
-  } catch {
+    candleCache.set(cacheKey, { data: candles, ts: Date.now() });
+    return candles;
+  } catch (e: any) {
+    if (e?.name === 'AbortError') throw e;
     return generateFallbackCandles(symbol, tf);
   }
 }

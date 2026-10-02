@@ -10,7 +10,7 @@ export interface AppState {
   positions: Position[];
   orders: Order[];
   history: ClosedTrade[];
-  equityHistory: EquityPoint[];
+  equityHistory: Record<string, EquityPoint[]>; // keyed by accountId
 }
 
 function defaults(): AppState {
@@ -28,7 +28,7 @@ function defaults(): AppState {
     positions: [],
     orders: [],
     history: [],
-    equityHistory: [{ time: Math.floor(Date.now() / 1000), value: 10000 }],
+    equityHistory: { [id]: [{ time: Math.floor(Date.now() / 1000), value: 10000 }] },
   };
 }
 
@@ -44,8 +44,13 @@ export function loadState(): AppState {
         if (!Array.isArray(parsed.positions)) parsed.positions = [];
         if (!Array.isArray(parsed.orders)) parsed.orders = [];
         if (!Array.isArray(parsed.history)) parsed.history = [];
-        if (!Array.isArray(parsed.equityHistory)) {
-          parsed.equityHistory = [{ time: Math.floor(Date.now() / 1000), value: parsed.accounts[0].cashUSD }];
+        // Migrate: if equityHistory is an old flat array, convert to per-account map
+        if (Array.isArray(parsed.equityHistory)) {
+          const activeId = parsed.activeAccountId;
+          parsed.equityHistory = { [activeId]: parsed.equityHistory as unknown as EquityPoint[] };
+        }
+        if (typeof parsed.equityHistory !== 'object' || parsed.equityHistory === null) {
+          parsed.equityHistory = {};
         }
         return parsed;
       }

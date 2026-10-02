@@ -46,13 +46,17 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
   // ─── Record equity snapshot (called periodically) ────────────────────────
   const recordEquity = useCallback((prices: Record<string, number>) => {
     const value = calcEquity(prices);
-    setState(prev => ({
-      ...prev,
-      equityHistory: [
-        ...prev.equityHistory.slice(-500), // ponytail: cap at 500 points
-        { time: Math.floor(Date.now() / 1000), value },
-      ],
-    }));
+    setState(prev => {
+      const accId = prev.activeAccountId;
+      const existing = prev.equityHistory[accId] ?? [];
+      return {
+        ...prev,
+        equityHistory: {
+          ...prev.equityHistory,
+          [accId]: [...existing.slice(-500), { time: Math.floor(Date.now() / 1000), value }],
+        },
+      };
+    });
   }, [calcEquity, setState]);
 
   // ── Market Buy ────────────────────────────────────────────────────────────
@@ -249,6 +253,10 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
         id, name, currency, cashUSD: startingCashUSD, startingCashUSD, createdAt: Date.now(),
       }],
       activeAccountId: id,
+      equityHistory: {
+        ...prev.equityHistory,
+        [id]: [{ time: Math.floor(Date.now() / 1000), value: startingCashUSD }],
+      },
     }));
   }, [setState]);
 
@@ -277,7 +285,10 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
         positions: prev.positions.filter(p => p.accountId !== accId),
         orders:    prev.orders.filter(o => o.accountId !== accId),
         history:   prev.history.filter(h => h.accountId !== accId),
-        equityHistory: [{ time: Math.floor(Date.now() / 1000), value: newStartingCashUSD }],
+        equityHistory: {
+          ...prev.equityHistory,
+          [accId]: [{ time: Math.floor(Date.now() / 1000), value: newStartingCashUSD }],
+        },
       };
     });
   }, [setState]);

@@ -106,6 +106,9 @@ export function AssetDetail({ asset, currentPrice, isFavourite, onToggleFavourit
   const [loading, setLoad]  = useState(true);
 
   useEffect(() => {
+    setInfo(null);
+    setLoad(true);
+    setNews([]);
     if (asset.class !== 'crypto') {
       fetchAssetInfo(asset.quoteSymbol).then(d => { setInfo(d); setLoad(false); });
     } else {
