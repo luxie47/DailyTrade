@@ -165,6 +165,38 @@ export function AccountModal({
               </a>
             </div>
 
+            {/* Discord */}
+            <div style={{ padding: '14px', background: 'rgba(88, 101, 242, 0.08)', border: '1px solid rgba(88, 101, 242, 0.3)' }}>
+              <div className="row gap-2" style={{ alignItems: 'center', marginBottom: 4 }}>
+                <span style={{ fontSize: 15 }}>💬</span>
+                <span className="mono font-bold" style={{ fontSize: 12, color: '#bbc1f9' }}>CHAT ON DISCORD</span>
+              </div>
+              <p style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                Have questions, feedback, or just want to say hi? Message me directly on Discord.
+              </p>
+              <a
+                href="https://discord.com/users/1205116665059090454"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  marginTop: 10,
+                  background: '#5865f2',
+                  color: '#ffffff',
+                  padding: '7px 12px',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  borderRadius: 2,
+                  letterSpacing: '0.04em',
+                }}
+              >
+                💬 LUXIE47 ON DISCORD <ExternalLink size={12} />
+              </a>
+            </div>
             {/* Bugs & Issues */}
             <div style={{ padding: '12px', background: 'var(--bg-subtle)', border: '1px solid var(--border-dim)' }}>
               <div className="row gap-2" style={{ alignItems: 'center', marginBottom: 6 }}>
