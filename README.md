@@ -63,7 +63,7 @@ If this app has been valuable to you, consider buying me a chai! Every contribut
 If you find DailyTrade helpful or want to support ongoing open-source development for **DailyTrade** and **DailyFlow**, donations are deeply appreciated! To donate or get in touch:
 * **GitHub**: [@luxie47](https://github.com/luxie47)
 * **Discord**: `Luxie47`
-* **Email**: [`luxie47@gmail.com`](mailto:luxie47@gmail.com)
+* **Email**: [`luxiee47@gmail.com`](mailto:luxiee47@gmail.com)
 
 ---
 
@@ -267,7 +267,7 @@ We are **always ready to hear from you**! Whether you encountered a bug, have an
 3. **Direct Contact for Suggestions & Feedback:**  
    * **GitHub**: [@luxie47](https://github.com/luxie47)
    * **Discord**: `Luxie47`
-   * **Email**: [`luxie47@gmail.com`](mailto:luxie47@gmail.com)
+   * **Email**: [`luxiee47@gmail.com`](mailto:luxiee47@gmail.com)
    * **Flagship App**: [DailyFlow](https://dailyflow-luxie.vercel.app)
 
 > 🌟 *Don't forget to **⭐ Star this repository** if you enjoy the app — it truly means the world to us!*

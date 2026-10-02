@@ -239,7 +239,7 @@ export function PositionsList({ positions, orders, history, prices, account, onC
         </div>
 
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--text-muted)' }}>
-          Developer: Luxie47 (luxie47@gmail.com | Discord: Luxie47) • Educational simulator only.
+          Developer: Luxie47 (luxiee47@gmail.com | Discord: Luxie47) • Educational simulator only.
         </span>
       </div>
     </div>

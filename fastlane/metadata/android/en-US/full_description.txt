@@ -13,6 +13,6 @@ DISCLAIMER:
 DailyTrade is an educational paper trading simulator. All currencies, balances, and trades are strictly virtual simulation credits with zero monetary value. DailyTrade does not provide financial or investment advice.
 
 DEVELOPER & SUPPORT:
-• Developer: Luxie47 (luxie47@gmail.com | Discord: Luxie47)
+• Developer: Luxie47 (luxiee47@gmail.com | Discord: Luxie47)
 • Check out our flagship productivity app: DailyFlow (https://dailyflow-luxie.vercel.app)
 • If you enjoy DailyTrade, please consider supporting development or visiting DailyFlow!
