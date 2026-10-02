@@ -21,6 +21,7 @@
     "Education",
     "Tools"
   ],
+  "iconUrl": "https://raw.githubusercontent.com/luxie47/DailyTrade/main/public/logo.png",
   "apkUrl": "https://github.com/luxie47/DailyTrade/releases/latest/download/DailyTrade.apk",
   "antiFeatures": []
 }
