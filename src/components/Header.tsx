@@ -24,18 +24,33 @@ export function Header({ account, totalEquityUSD, unrPnLUSD, onOpenAccountModal,
       className="app-header row between"
       style={{ padding: '0 16px', gap: 8 }}
     >
-      {/* Left: Account name & equity */}
-      <button
-        className="btn btn-ghost row gap-2"
-        style={{ padding: '6px 10px', borderColor: 'var(--border-dim)' }}
-        onClick={onOpenAccountModal}
-      >
-        <Wallet size={14} strokeWidth={2} />
-        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 600, letterSpacing: '0.01em', color: 'var(--text-secondary)' }}>
-          {account.name.length > 12 ? account.name.slice(0, 12) + '…' : account.name}
-        </span>
-        <ChevronDown size={12} />
-      </button>
+      {/* Left: Brand Logo & Account */}
+      <div className="row gap-2" style={{ alignItems: 'center' }}>
+        <img
+          src="/logo.png"
+          alt="DailyTrade"
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 4,
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            objectFit: 'contain',
+            background: '#000',
+            flexShrink: 0
+          }}
+        />
+        <button
+          className="btn btn-ghost row gap-2"
+          style={{ padding: '6px 10px', borderColor: 'var(--border-dim)' }}
+          onClick={onOpenAccountModal}
+        >
+          <Wallet size={14} strokeWidth={2} />
+          <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 600, letterSpacing: '0.01em', color: 'var(--text-secondary)' }}>
+            {account.name.length > 12 ? account.name.slice(0, 12) + '…' : account.name}
+          </span>
+          <ChevronDown size={12} />
+        </button>
+      </div>
 
       {/* Center: Balance */}
       <div className="col" style={{ alignItems: 'center', flex: 1 }}>

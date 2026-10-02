@@ -2,6 +2,9 @@
 
 <div align="center">
 
+<img src="public/logo.png" alt="DailyTrade Logo" width="96" style="border-radius: 18px; margin-bottom: 14px;" />
+<br/>
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![React](https://img.shields.io/badge/React-19-61dafb.svg?logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)

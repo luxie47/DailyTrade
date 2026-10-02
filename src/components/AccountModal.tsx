@@ -90,7 +90,22 @@ export function AccountModal({
             {/* Mission Statement */}
             <div style={{ padding: '14px', background: 'var(--bg-subtle)', border: '1px solid var(--border-bright)' }}>
               <div className="row between" style={{ alignItems: 'center' }}>
-                <span className="mono font-bold" style={{ fontSize: 14, color: 'var(--text-primary)' }}>DailyTrade</span>
+                <div className="row gap-2" style={{ alignItems: 'center' }}>
+                  <img
+                    src="/logo.png"
+                    alt="DailyTrade Logo"
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 4,
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      objectFit: 'contain',
+                      background: '#000',
+                      flexShrink: 0
+                    }}
+                  />
+                  <span className="mono font-bold" style={{ fontSize: 14, color: 'var(--text-primary)' }}>DailyTrade</span>
+                </div>
                 <span className="badge badge-neutral" style={{ fontSize: 10 }}>v1.0.0</span>
               </div>
               <p style={{ fontFamily: 'var(--font-ui)', fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.5 }}>
