@@ -165,6 +165,39 @@ export function AccountModal({
               </a>
             </div>
 
+            {/* Android APK Download */}
+            <div style={{ padding: '14px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+              <div className="row gap-2" style={{ alignItems: 'center', marginBottom: 4 }}>
+                <span style={{ fontSize: 15 }}>📱</span>
+                <span className="mono font-bold" style={{ fontSize: 12, color: '#6ee7b7' }}>GET ANDROID APP (APK)</span>
+              </div>
+              <p style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                Install DailyTrade directly on your Android phone for native performance and full offline simulation.
+              </p>
+              <a
+                href="https://github.com/luxie47/DailyTrade/releases/latest/download/DailyTrade.apk"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  marginTop: 10,
+                  background: '#059669',
+                  color: '#ffffff',
+                  padding: '7px 12px',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  borderRadius: 2,
+                  letterSpacing: '0.04em',
+                }}
+              >
+                <Download size={12} /> DOWNLOAD DAILYTRADE.APK (v1.0.0) <ExternalLink size={12} />
+              </a>
+            </div>
+
             {/* Discord */}
             <div style={{ padding: '14px', background: 'rgba(88, 101, 242, 0.08)', border: '1px solid rgba(88, 101, 242, 0.3)' }}>
               <div className="row gap-2" style={{ alignItems: 'center', marginBottom: 4 }}>

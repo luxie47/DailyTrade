@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, Clock, BarChart2, X, Star, Heart, Info, ExternalLink } from 'lucide-react';
+import { TrendingUp, TrendingDown, Clock, BarChart2, X, Star, Heart, Info, ExternalLink, Download } from 'lucide-react';
 import type { Position, ClosedTrade, Order } from '../types/trade';
 import type { Account } from '../types/account';
 import { formatCurrency, formatPct } from '../services/storage';
@@ -226,6 +226,15 @@ export function PositionsList({ positions, orders, history, prices, account, onC
             style={{ fontSize: 11, padding: '7px 10px', textDecoration: 'none', color: '#bbc1f9', borderColor: 'rgba(88, 101, 242, 0.4)' }}
           >
             💬 DISCORD
+          </a>
+          <a
+            href="https://github.com/luxie47/DailyTrade/releases/latest/download/DailyTrade.apk"
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn-outline"
+            style={{ fontSize: 11, padding: '7px 10px', textDecoration: 'none', color: '#34d399', borderColor: 'rgba(52, 211, 153, 0.4)' }}
+          >
+            <Download size={12} color="#34d399" /> ANDROID APK
           </a>
           <a
             href="https://buymeachai.ezee.li/luxie47"
