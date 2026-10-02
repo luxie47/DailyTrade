@@ -165,25 +165,58 @@ export function AccountModal({
               </a>
             </div>
 
-            {/* Bugs, Issues & Suggestions */}
+            {/* Bugs & Issues */}
             <div style={{ padding: '12px', background: 'var(--bg-subtle)', border: '1px solid var(--border-dim)' }}>
               <div className="row gap-2" style={{ alignItems: 'center', marginBottom: 6 }}>
                 <MessageSquare size={13} color="var(--text-primary)" />
                 <span className="mono font-bold" style={{ fontSize: 11, color: 'var(--text-primary)', textTransform: 'uppercase' }}>
-                  BUGS, ISSUES & SUGGESTIONS
+                  BUGS &amp; ISSUES
                 </span>
               </div>
-              <p style={{ fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                We are always ready to hear! If you discover any bugs or want to suggest new features, please submit a <strong>Pull Request</strong> or message me directly:
+              <p style={{ fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: 10 }}>
+                Found a bug or have a suggestion? Open a GitHub Issue — we read every single one.
               </p>
-              <div className="col gap-1" style={{ marginTop: 8, fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-                <div><span style={{ color: 'var(--text-muted)' }}>GitHub:</span> <a href="https://github.com/luxie47/DailyTrade" target="_blank" rel="noreferrer" style={{ color: '#818cf8', textDecoration: 'none' }}>luxie47/DailyTrade</a></div>
-                <div><span style={{ color: 'var(--text-muted)' }}>Discord:</span> <span style={{ color: 'var(--text-primary)' }}>Luxie47</span></div>
-                <div><span style={{ color: 'var(--text-muted)' }}>Email:</span> <a href="mailto:luxie47@gmail.com" style={{ color: '#818cf8', textDecoration: 'none' }}>luxie47@gmail.com</a></div>
+              <a
+                href="https://github.com/luxie47/DailyTrade/issues/new"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  background: 'var(--bg-card)', border: '1px solid var(--border-mid)',
+                  color: 'var(--text-primary)', padding: '7px 12px',
+                  fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700,
+                  textDecoration: 'none', letterSpacing: '0.04em',
+                }}
+              >
+                <MessageSquare size={11} /> OPEN A GITHUB ISSUE
+              </a>
+            </div>
+
+            {/* Support / Donate */}
+            <div style={{ padding: '12px', background: 'rgba(251, 146, 60, 0.06)', border: '1px solid rgba(251, 146, 60, 0.3)' }}>
+              <div className="row gap-2" style={{ alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontSize: 14 }}>🍵</span>
+                <span className="mono font-bold" style={{ fontSize: 11, color: '#fb923c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  SUPPORT DEVELOPMENT
+                </span>
               </div>
-              <p style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-                ☕ Want to support or donate? Contact me via Discord or Email. Every bit of support means the world!
+              <p style={{ fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: 10 }}>
+                DailyTrade is 100% free with no ads. If it's been useful, buying me a chai keeps this project alive!
               </p>
+              <a
+                href="https://buymeachai.ezee.li/luxie47"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  background: '#fb923c', border: 'none',
+                  color: '#000', padding: '8px 14px',
+                  fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 800,
+                  textDecoration: 'none', borderRadius: 2, letterSpacing: '0.05em',
+                }}
+              >
+                🍵 BUY ME A CHAI
+              </a>
             </div>
 
             {/* In-App Privacy Policy Viewer */}
