@@ -22,6 +22,12 @@
     "Tools"
   ],
   "iconUrl": "https://raw.githubusercontent.com/luxie47/DailyTrade/main/public/logo.png",
+  "screenshots": [
+    "https://raw.githubusercontent.com/luxie47/DailyTrade/main/public/screenshots/1_trade.png",
+    "https://raw.githubusercontent.com/luxie47/DailyTrade/main/public/screenshots/2_markets.png",
+    "https://raw.githubusercontent.com/luxie47/DailyTrade/main/public/screenshots/3_portfolio.png",
+    "https://raw.githubusercontent.com/luxie47/DailyTrade/main/public/screenshots/4_accounts.png"
+  ],
   "apkUrl": "https://github.com/luxie47/DailyTrade/releases/latest/download/DailyTrade.apk",
   "antiFeatures": []
 }
