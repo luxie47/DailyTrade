@@ -12,7 +12,7 @@
 [![Capacitor](https://img.shields.io/badge/Capacitor-Android-119eff.svg?logo=capacitor&logoColor=white)](https://capacitorjs.com/)
 [![Android APK](https://img.shields.io/badge/APK-v1.0.0-3DDC84.svg?logo=android&logoColor=white)](DailyTrade.apk)
 [![TradingView Charts](https://img.shields.io/badge/Powered%20By-Lightweight%20Charts-00e676.svg)](https://tradingview.github.io/lightweight-charts/)
-[![Get it on Orion Store](https://img.shields.io/badge/Get%20it%20on-Orion%20Store-7c3aed.svg)](orion-metadata.json)
+[![Get it on Orion Store](https://raw.githubusercontent.com/RookieEnough/Orion-Store/refs/heads/main/assets/orion-badge.png)](https://rookieenough.github.io/Orion-Data/redirect.html?id=dailytrade)
 [![Build APK](https://github.com/luxie47/DailyTrade/actions/workflows/build-apk.yml/badge.svg)](.github/workflows/build-apk.yml)
 [![GitHub Stars](https://img.shields.io/badge/GitHub-Star%20Repo-f59e0b?logo=github&logoColor=white)](https://github.com/luxie47/DailyTrade)
 [![Buy Me A Chai](https://img.shields.io/badge/Support-Buy%20Me%20A%20Chai%20🍵-fb923c?style=flat)](https://buymeachai.ezee.li/luxie47)
@@ -20,7 +20,13 @@
 **A high-performance, minimalist paper trading simulator with real live market feeds and zero real money involved.**  
 *Practice trading stocks, crypto, crude oil, forex, index mutual funds, and fixed deposits with zero risk.*
 
-[Download APK](DailyTrade.apk) • [Featured Project: DailyFlow](https://dailyflow-luxie.vercel.app) • [Star on GitHub](https://github.com/luxie47/DailyTrade) • [Features](#-features) • [Data Flow](#-architecture--data-flow) • [Roadmap](#-secure-roadmap) • [Disclaimer](#-legal--financial-disclaimer)
+[Download APK](DailyTrade.apk) • [Get it on Orion Store](https://rookieenough.github.io/Orion-Data/redirect.html?id=dailytrade) • [Featured Project: DailyFlow](https://dailyflow-luxie.vercel.app) • [Star on GitHub](https://github.com/luxie47/DailyTrade) • [Features](#-features) • [Data Flow](#-architecture--data-flow) • [Roadmap](#-secure-roadmap) • [Disclaimer](#-legal--financial-disclaimer)
+
+<br/>
+
+<a href="https://rookieenough.github.io/Orion-Data/redirect.html?id=dailytrade" target="_blank" rel="noopener noreferrer">
+  <img src="https://raw.githubusercontent.com/RookieEnough/Orion-Store/refs/heads/main/assets/orion-badge.png" alt="Get it on Orion Store" height="52">
+</a>
 
 </div>
 
