@@ -25,7 +25,7 @@
 <br/>
 
 <a href="https://rookieenough.github.io/Orion-Data/redirect.html?id=dailytrade" target="_blank" rel="noopener noreferrer">
-  <img src="https://raw.githubusercontent.com/RookieEnough/Orion-Store/refs/heads/main/assets/orion-badge.png" alt="Get it on Orion Store" height="32">
+  <img src="https://raw.githubusercontent.com/RookieEnough/Orion-Store/refs/heads/main/assets/orion-badge.png" alt="Get it on Orion Store" height="42">
 </a>
 
 </div>
