@@ -218,6 +218,15 @@ export function PositionsList({ positions, orders, history, prices, account, onC
           >
             <Heart size={12} color="#818cf8" /> VISIT DAILYFLOW
           </a>
+          <a
+            href="https://buymeachai.ezee.li/luxie47"
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn-outline"
+            style={{ fontSize: 11, padding: '7px 10px', textDecoration: 'none', color: '#fb923c', borderColor: 'rgba(251, 146, 60, 0.4)' }}
+          >
+            🍵 BUY ME A CHAI
+          </a>
           {onOpenAbout && (
             <button
               className="btn btn-ghost"

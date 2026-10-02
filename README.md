@@ -12,6 +12,7 @@
 [![Get it on Orion Store](https://img.shields.io/badge/Get%20it%20on-Orion%20Store-7c3aed.svg)](orion-metadata.json)
 [![Build APK](https://github.com/luxie47/DailyTrade/actions/workflows/build-apk.yml/badge.svg)](.github/workflows/build-apk.yml)
 [![GitHub Stars](https://img.shields.io/badge/GitHub-Star%20Repo-f59e0b?logo=github&logoColor=white)](https://github.com/luxie47/DailyTrade)
+[![Buy Me A Chai](https://img.shields.io/badge/Support-Buy%20Me%20A%20Chai%20🍵-fb923c?style=flat)](https://buymeachai.ezee.li/luxie47)
 
 **A high-performance, minimalist paper trading simulator with real live market feeds and zero real money involved.**  
 *Practice trading stocks, crypto, crude oil, forex, index mutual funds, and fixed deposits with zero risk.*
@@ -26,6 +27,14 @@
 
 > **If you like DailyTrade or find this paper trading simulator useful, please give this repository a ⭐ Star!**  
 > We have open sourced this app mentally and wholeheartedly for everyone. Every single star means the world to our team, validates our effort, and helps more traders discover this free educational tool!
+
+## ☕ Support Development
+
+If this app has been valuable to you, consider buying me a chai! Every contribution helps keep DailyTrade free and actively maintained.
+
+<a href="https://buymeachai.ezee.li/luxie47" target="_blank" rel="noopener noreferrer">
+  <img src="https://buymeachai.ezee.li/assets/images/buymeachai-button.png" alt="Buy Me A Chai" width="200">
+</a>
 
 ---
 
