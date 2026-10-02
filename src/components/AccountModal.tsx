@@ -17,6 +17,8 @@ interface Props {
   onDelete: (id: string) => void;
   onUpdateCurrency: (c: Currency) => void;
   onImport: (state: AppState) => void;
+  onOpenExport?: () => void;
+  onOpenImport?: () => void;
   onClose: () => void;
 }
 
@@ -24,7 +26,7 @@ export type View = 'list' | 'create' | 'about';
 
 export function AccountModal({
   accounts, activeAccountId, state, initialView = 'list',
-  onSwitch, onCreate, onTopUp, onReset, onDelete, onUpdateCurrency, onImport, onClose
+  onSwitch, onCreate, onTopUp, onReset, onDelete, onUpdateCurrency, onImport, onOpenExport, onOpenImport, onClose
 }: Props) {
   const [view, setView] = useState<View>(initialView);
   const [showPrivacy, setShowPrivacy] = useState(false);
@@ -523,29 +525,41 @@ export function AccountModal({
             ))}
           </div>
 
-          {/* Reset Account */}
-          <div className="row gap-2">
-            <button
-              className="btn btn-outline flex-1"
-              style={{ fontSize: 11, padding: '8px' }}
-              onClick={() => handleReset(active.startingCashUSD * cfg.usdRate)}
-            >
-              <RefreshCw size={12} /> RESET
-            </button>
-            <button
-              className="btn btn-outline flex-1"
-              style={{ fontSize: 11, padding: '8px' }}
-              onClick={() => exportJSON(state)}
-            >
-              <Download size={12} /> EXPORT
-            </button>
-            <button
-              className="btn btn-outline flex-1"
-              style={{ fontSize: 11, padding: '8px' }}
-              onClick={handleImport}
-            >
-              <Upload size={12} /> IMPORT
-            </button>
+          {/* Reset & Storage Backup */}
+          <div className="col gap-2">
+            <div className="row gap-2">
+              <button
+                className="btn btn-outline flex-1"
+                style={{ fontSize: 11, padding: '8px' }}
+                onClick={() => handleReset(active.startingCashUSD * cfg.usdRate)}
+              >
+                <RefreshCw size={12} /> RESET BALANCE
+              </button>
+            </div>
+
+            {/* Persistent Storage Notice */}
+            <div style={{ padding: '8px 10px', background: 'rgba(0, 230, 118, 0.05)', border: '1px solid rgba(0, 230, 118, 0.2)', marginTop: 4 }}>
+              <span className="mono text-xs" style={{ color: '#4ade80', fontSize: 10 }}>
+                🛡️ Auto-backup active: Trades auto-saved to Documents/DailyTrade. Safe from app updates.
+              </span>
+            </div>
+
+            <div className="row gap-2">
+              <button
+                className="btn btn-outline flex-1"
+                style={{ fontSize: 11, padding: '8px' }}
+                onClick={() => onOpenExport ? onOpenExport() : exportJSON(state)}
+              >
+                <Download size={12} /> EXPORT
+              </button>
+              <button
+                className="btn btn-outline flex-1"
+                style={{ fontSize: 11, padding: '8px' }}
+                onClick={() => onOpenImport ? onOpenImport() : handleImport()}
+              >
+                <Upload size={12} /> IMPORT / RESTORE
+              </button>
+            </div>
           </div>
         </div>
 

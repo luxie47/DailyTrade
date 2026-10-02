@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { loadState, saveState, formatCurrency, type AppState } from '../services/storage';
+import { triggerAutoBackup } from '../services/backupService';
 import type { Currency } from '../types/account';
 import type { Position, ClosedTrade, Order } from '../types/trade';
 import { formatAssetPrice } from '../utils/formatPrice';
@@ -9,11 +10,12 @@ export type NotificationCallback = (title: string, message: string, type: 'succe
 export function useTradingEngine(onNotify?: NotificationCallback) {
   const [state, setStateRaw] = useState<AppState>(loadState);
 
-  // persist on every change
+  // persist on every change & auto-backup to device storage
   const setState = useCallback((updater: (prev: AppState) => AppState) => {
     setStateRaw(prev => {
       const next = updater(prev);
       saveState(next);
+      triggerAutoBackup(next);
       return next;
     });
   }, []);
@@ -314,10 +316,15 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
     }));
   }, [setState]);
 
+  const replaceState = useCallback((newState: AppState) => {
+    setState(() => newState);
+  }, [setState]);
+
   return {
     state, activeAccount, positions, orders, history,
     calcUnrealisedPnL, calcEquity, recordEquity,
     marketBuy, closePosition, placeLimitOrder, cancelOrder, checkLimitOrders,
     createAccount, switchAccount, topUpAccount, resetAccount, deleteAccount, updateAccountCurrency,
+    replaceState,
   };
 }

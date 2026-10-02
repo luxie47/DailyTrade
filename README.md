@@ -89,16 +89,16 @@ If you find DailyTrade helpful or want to support ongoing open-source developmen
 
 ---
 
-## 📱 Asset Coverage (120+ Live Symbols)
+## 📱 Asset Coverage (180+ Live Symbols)
 
 | Category | Assets Included | Data Feed | Precision / Currency |
 | :--- | :--- | :--- | :--- |
-| **Crypto** | BTC, ETH, SOL, BNB, XRP, DOGE, AVAX, LINK, SUI, ADA, PEPE, SHIB | Binance WebSocket (24/7 Live Ticks) | `$` (USD) |
-| **Commodities & Oil** | WTI Crude Oil (`CL=F`), Brent Crude (`BZ=F`), Natural Gas, Gasoline, Heating Oil, Gold (`GC=F`), Silver, Copper, Platinum | NYMEX / COMEX via Yahoo Chart API | `$` (USD) |
-| **Forex & US Dollar** | US Dollar Index (DXY), EUR/USD, GBP/USD, USD/INR, USD/JPY, AUD/USD, USD/CAD, USD/CHF | Interbank FX Feed via Yahoo | Ratio (4 decimals) / `₹` |
-| **Index Funds & ETFs** | Vanguard S&P 500 (`VOO`, `SPY`), Invesco QQQ, Russell 2000, SCHD Dividend, SMH Semiconductors, Nifty 50 BeES | Global Exchanges via Yahoo | `$` / `₹` |
-| **Fixed Income & FD** | 10-Year Treasury Yield (`^TNX`), 30-Year Yield, US 1-3M T-Bills (`BIL`), 20Y Treasury (`TLT`), Liquid BeES (FD Benchmark) | US Treasury / NSE Benchmark | `%` Yield / `₹` |
-| **US & Indian Stocks** | Apple, Nvidia, Tesla, Microsoft, Alphabet, Amazon, Reliance, TCS, HDFC Bank, Infosys, Tata Motors, ICICI Bank | NASDAQ, NYSE, NSE India | `$` / `₹` |
+| **Crypto** | BTC, ETH, SOL, BNB, XRP, DOGE, ADA, AVAX, LINK, DOT, NEAR, SUI, APT, LTC, SHIB, PEPE, FLOKI, BONK, UNI, AAVE, ATOM, ICP, FIL, RENDER, FET, INJ, TIA, SEI, FTM, TRX, XLM, KAS, RUNE, PENDLE, WLD | Binance WebSocket (24/7 Live Ticks) | `$` (USD) |
+| **Commodities & Agriculture** | Crude Oil WTI, Brent, Natural Gas, Gasoline, Heating Oil, Gold, Silver, Copper, Platinum, Palladium, Corn, Soybean, Wheat, Coffee, Sugar, Cocoa, Cotton, Lumber | NYMEX / COMEX / CBOT via Yahoo Chart API | `$` (USD) |
+| **Forex & US Dollar** | US Dollar Index (DXY), USD/INR, EUR/USD, GBP/USD, USD/JPY, USD/CAD, AUD/USD, NZD/USD, USD/CHF, EUR/GBP, EUR/JPY, GBP/JPY, USD/CNY, USD/SGD, USD/AED | Interbank FX Feed via Yahoo | Ratio (4 decimals) / `₹` |
+| **Index Funds & Sector ETFs** | S&P 500 (VOO, SPY), Invesco QQQ, Total Market (VTI), Russell 2000 (IWM), Dow Jones (DIA), Growth/Value (VUG, VTV), Schwab Dividend (SCHD), Semiconductors (SMH, SOXX), Sector SPDRs (Tech, Energy, Financials, Health, Real Estate), Ark Innovation, Gold/Silver Trust, Oil Fund, Indian BeES (Nifty, Bank, IT, Next50, Gold, Silver) | Global Exchanges via Yahoo | `$` / `₹` |
+| **Fixed Income & Bonds** | 1-3M T-Bills (`BIL`), 1-3Y Treasury (`SHY`), 7-10Y Bond (`IEF`), 20+Y Treasury (`TLT`), Total Bond (`BND`), Aggregate Bond (`AGG`), High Yield (`HYG`), Corp Bonds (`LQD`), 10Y Yield (`^TNX`), 30Y Yield (`^TYX`), Liquid BeES (FD Benchmark) | US Treasury / NSE Benchmark | `%` Yield / `₹` |
+| **US & Indian Stocks** | 70+ Bluechips & Growth Giants: Apple, Microsoft, NVIDIA, Alphabet, Meta, Amazon, Tesla, Broadcom, Netflix, AMD, Intel, Palantir, Coinbase, Robinhood, CrowdStrike, Snowflake, Berkshire, J.P. Morgan, Visa, Walmart, Costco, Eli Lilly, Exxon, Reliance, TCS, HDFC Bank, ICICI Bank, Infosys, Bharti Airtel, SBI, Tata Motors, Tata Steel, Titan, Zomato, Jio Financial, Paytm, Trent, BEL, HAL | NASDAQ, NYSE, NSE India | `$` / `₹` |
 
 ---
 
@@ -194,11 +194,16 @@ npm run build
 
 ---
 
-## 🔒 Privacy & Offline First
+## 🔒 Privacy & Zero-Loss Persistent Storage
 
 * **Zero Tracking**: No Google Analytics, no Firebase, no tracking cookies, no telemetry.
-* **100% Local Storage**: Portfolios, trade history, open positions, and favorite watchlists are saved strictly on your local device.
-* **Backup & Restore**: Easily export and import your portfolio data via JSON from the Accounts menu.
+* **100% Local & Durable Storage**: Portfolios, trade history, open positions, and favorite watchlists are saved strictly on your local device.
+* **Update-Safe Persistence (`/Documents/DailyTrade`)**:
+  - **Automatic Snapshots**: Every trade and balance change automatically saves an encrypted snapshot (`dailytrade_autobackup.json`) directly to your device's native `Documents/DailyTrade/` folder.
+  - **Survives App Updates**: Even when updating the APK or clearing webview storage, the app automatically checks `Documents/DailyTrade/` on launch and seamlessly recovers your accounts.
+* **Custom Export & Restore**:
+  - **Export with Custom Name**: Save custom snapshots (e.g. `MyBullRun_2026.json`) directly to `Documents/DailyTrade` (Android) or download JSON (Web).
+  - **Merge or Replace Restore**: When importing backups, choose between **Merge Accounts** (keeps current portfolios and adds imported ones without conflicts) or **Replace All** (complete clean restore).
 * Review our full [Privacy Policy](PRIVACY.md).
 
 ---
@@ -229,6 +234,7 @@ Head into `src/types/account.ts` to customize starting cash presets, or use the 
 - [x] One-Cancels-the-Other (OCO) order execution
 - [x] Cross-platform Android APK compilation
 - [x] Multi-currency accounting (USD, EUR, INR, GBP, JPY)
+- [x] **Zero-Loss Persistent Portfolio Storage & Auto-Backup** (`Documents/DailyTrade/`)
 - [ ] **Technical Indicators Overlay** (RSI, MACD, EMA 20/50/200 on chart)
 - [ ] **Custom Price Alerts** (Local background notifications when target price hits)
 - [ ] **Tax & Trading Journal Export** (Download full CSV trade history)

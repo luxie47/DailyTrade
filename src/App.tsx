@@ -12,11 +12,14 @@ import { PortfolioChart }   from './components/PortfolioChart';
 import { PortfolioBreakdown } from './components/PortfolioBreakdown';
 import { AssetDetail }      from './components/AssetDetail';
 import { AccountModal }     from './components/AccountModal';
+import { ExportModal }      from './components/ExportModal';
+import { ImportModal }      from './components/ImportModal';
 import { ToastContainer, type ToastMessage } from './components/Toast';
 
 import { ASSETS, ASSET_MAP } from './data/assets';
 import type { Asset, Timeframe } from './types/market';
 import { formatCurrency, type AppState } from './services/storage';
+import { checkAndAutoRestore } from './services/backupService';
 import {
   fetchBinanceCandles, fetchCandles, fetchYahooQuote,
   subscribeLiveQuote, subscribeAllQuotes, startSyntheticTicks,
@@ -49,7 +52,23 @@ export default function App() {
   const [prices, setPrices] = useState<Record<string, number>>({});
   const [showTradeModal, setShowTradeModal] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [accountModalView, setAccountModalView] = useState<'list' | 'create' | 'about'>('list');
+
+  // Check for auto-restore after app update / fresh webview state
+  useEffect(() => {
+    checkAndAutoRestore().then(({ restored, restoredState }) => {
+      if (restored && restoredState) {
+        engine.replaceState(restoredState);
+        addToast(
+          'Portfolio Restored',
+          'Successfully auto-restored your accounts from device backup (Documents/DailyTrade).',
+          'success'
+        );
+      }
+    });
+  }, [engine.replaceState, addToast]);
 
   // Favorites state persisted in localStorage
   const [favorites, setFavorites] = useState<string[]>(() => {
@@ -198,8 +217,8 @@ export default function App() {
   };
 
   const handleImport = (s: AppState) => {
-    localStorage.setItem('dailytrade_v1', JSON.stringify(s));
-    window.location.reload();
+    engine.replaceState(s);
+    addToast('Portfolio Restored', 'Accounts and trading data loaded.', 'success');
   };
 
   return (
@@ -436,7 +455,36 @@ export default function App() {
           onDelete={engine.deleteAccount}
           onUpdateCurrency={engine.updateAccountCurrency}
           onImport={handleImport}
+          onOpenExport={() => setShowExportModal(true)}
+          onOpenImport={() => setShowImportModal(true)}
           onClose={() => setShowAccountModal(false)}
+        />
+      )}
+
+      {/* ── Export Modal ────────────────────────────────────────── */}
+      {showExportModal && (
+        <ExportModal
+          state={engine.state}
+          onSuccess={(path) => {
+            addToast('Backup Exported', `Saved to ${path}`, 'success');
+          }}
+          onClose={() => setShowExportModal(false)}
+        />
+      )}
+
+      {/* ── Import Modal ────────────────────────────────────────── */}
+      {showImportModal && (
+        <ImportModal
+          currentState={engine.state}
+          onConfirmRestore={(restoredState, mode) => {
+            engine.replaceState(restoredState);
+            addToast(
+              'Portfolio Restored',
+              mode === 'merge' ? 'Accounts merged into your portfolio successfully!' : 'Portfolio overwritten with backup!',
+              'success'
+            );
+          }}
+          onClose={() => setShowImportModal(false)}
         />
       )}
     </div>
