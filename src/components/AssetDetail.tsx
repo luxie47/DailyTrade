@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, TrendingUp, TrendingDown, Star, BarChart2, ExternalLink } from 'lucide-react';
 import type { Asset, Quote } from '../types/market';
+import { applyAngelOverlay } from '../services/marketData';
 import { formatAssetPrice } from '../utils/formatPrice';
 
 interface AssetInfo {
@@ -108,13 +109,18 @@ export function AssetDetail({ asset, currentPrice, isFavourite, onToggleFavourit
   useEffect(() => {
     setInfo(null);
     setLoad(true);
+    let cancelled = false;
     setNews([]);
     if (asset.class !== 'crypto') {
-      fetchAssetInfo(asset.quoteSymbol).then(d => { setInfo(d); setLoad(false); });
+      fetchAssetInfo(asset.quoteSymbol).then(async d => {
+        if (d && !cancelled) d.quote = await applyAngelOverlay(asset.quoteSymbol, d.quote);
+        if (!cancelled) { setInfo(d); setLoad(false); }
+      });
     } else {
       setLoad(false);
     }
     fetchNews(asset.name).then(setNews);
+    return () => { cancelled = true; };
   }, [asset]);
 
   const isUp      = info ? info.quote.changePct >= 0 : true;
@@ -149,6 +155,16 @@ export function AssetDetail({ asset, currentPrice, isFavourite, onToggleFavourit
                     {asset.name}
                     {info?.sector && <span style={{ color: 'var(--text-muted)' }}> · {info.sector}</span>}
                   </div>
+                  {info?.quote.source && info.quote.source !== 'yahoo' && (
+                    <div style={{
+                      display: 'inline-block', marginTop: 4,
+                      fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
+                      color: info.quote.source === 'angel' ? '#6ee7b7' : 'var(--text-muted)',
+                      border: '1px solid var(--border-mid)', padding: '2px 6px',
+                    }}>
+                      {info.quote.source === 'angel' ? '● ANGEL LIVE' : '● BINANCE LIVE'}
+                    </div>
+                  )}
                 </div>
               </div>
 

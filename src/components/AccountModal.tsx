@@ -3,6 +3,7 @@ import { Plus, Trash2, RefreshCw, Download, Upload, Check, ExternalLink, Heart, 
 import type { Account, Currency } from '../types/account';
 import { CURRENCIES } from '../types/account';
 import { formatCurrency, exportJSON, importJSON } from '../services/storage';
+import { getBridgeUrl, setBridgeUrl, testBridge } from '../services/marketData';
 import type { AppState } from '../services/storage';
 
 interface Props {
@@ -34,6 +35,8 @@ export function AccountModal({
   const [newCurrency, setNewCurrency] = useState<Currency>('USD');
   const [newCash, setNewCash] = useState('10000');
   const [error, setError] = useState('');
+  const [bridgeUrl, setBridgeUrlInput] = useState(() => getBridgeUrl());
+  const [bridgeStatus, setBridgeStatus] = useState('');
 
   const active = accounts.find(a => a.id === activeAccountId) ?? accounts[0];
   const cfg = (active && CURRENCIES.find(c => c.code === active.currency)) ?? CURRENCIES[0];
@@ -89,6 +92,52 @@ export function AccountModal({
           </div>
 
           <div className="col gap-3">
+            {/* Live data: Angel bridge */}
+            <div style={{ padding: '14px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+              <div className="mono font-bold" style={{ fontSize: 12, color: '#6ee7b7', letterSpacing: '0.04em' }}>
+                LIVE DATA: ANGEL BRIDGE
+              </div>
+              <p style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.4 }}>
+                Optional. Paste your angel-bridge URL and Nifty / Bank Nifty / Sensex tick live from your Angel One feed. Empty = Yahoo for everything. Only the URL is stored — never broker secrets.
+              </p>
+              <input
+                value={bridgeUrl}
+                onChange={e => setBridgeUrlInput(e.target.value)}
+                placeholder="https://your-app.onrender.com"
+                spellCheck={false}
+                style={{
+                  width: '100%', marginTop: 8, background: '#000', color: 'var(--text-primary)',
+                  border: '1px solid var(--border-mid)', padding: '8px 10px',
+                  fontFamily: 'var(--font-mono)', fontSize: 12, borderRadius: 0,
+                }}
+              />
+              <div className="row gap-2" style={{ marginTop: 8 }}>
+                <button
+                  className="btn"
+                  style={{ flex: 1, padding: '8px 0', fontSize: 11 }}
+                  onClick={async () => {
+                    setBridgeUrl(bridgeUrl);
+                    setBridgeStatus('Testing…');
+                    setBridgeStatus(await testBridge(bridgeUrl));
+                  }}
+                >
+                  SAVE & TEST
+                </button>
+                <button
+                  className="btn btn-ghost"
+                  style={{ padding: '8px 12px', fontSize: 11 }}
+                  onClick={() => { setBridgeUrl(''); setBridgeUrlInput(''); setBridgeStatus('Bridge cleared — Yahoo for everything.'); }}
+                >
+                  CLEAR
+                </button>
+              </div>
+              {bridgeStatus && (
+                <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-secondary)', marginTop: 8 }}>
+                  {bridgeStatus}
+                </p>
+              )}
+            </div>
+
             {/* Mission Statement */}
             <div style={{ padding: '14px', background: 'var(--bg-subtle)', border: '1px solid var(--border-bright)' }}>
               <div className="row between" style={{ alignItems: 'center' }}>

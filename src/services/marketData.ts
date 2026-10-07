@@ -1,5 +1,86 @@
-import type { Quote, Candle, Timeframe } from '../types/market';
-import { BINANCE_SYMBOLS } from '../data/assets';
+import type { Quote, Candle, Timeframe, AngelId } from '../types/market';
+import { BINANCE_SYMBOLS, ASSETS } from '../data/assets';
+
+// ─── Angel Bridge (personal SmartAPI feed for Nifty/BankNifty/Sensex) ─────────
+// The bridge URL is the only thing stored in-app — no broker secrets, ever.
+// When unset (default) everything behaves exactly as before (Yahoo).
+const ANGEL_URL_KEY = 'dailytrade_angel_bridge';
+
+export function getBridgeUrl(): string {
+  try { return (localStorage.getItem(ANGEL_URL_KEY) ?? '').replace(/\/+$/, ''); }
+  catch { return ''; }
+}
+
+export function setBridgeUrl(url: string): void {
+  try {
+    const clean = url.trim().replace(/\/+$/, '');
+    if (clean) localStorage.setItem(ANGEL_URL_KEY, clean);
+    else localStorage.removeItem(ANGEL_URL_KEY);
+    angelCache = null; // force fresh fetch against the new URL
+  } catch { /* private mode — bridge simply stays off */ }
+}
+
+export async function testBridge(url: string): Promise<string> {
+  const clean = url.trim().replace(/\/+$/, '');
+  if (!clean) return 'Enter your bridge URL first (https://….onrender.com).';
+  try {
+    const res = await fetch(`${clean}/health`, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return `Bridge answered HTTP ${res.status} — check the URL.`;
+    const h = await res.json();
+    if (h.connected) return 'Angel connected — live ticks flowing.';
+    if (h.market_open === false) return 'Bridge reachable, market closed — will go live at 09:15 IST.';
+    return 'Bridge reachable but socket not connected yet — give it a minute.';
+  } catch {
+    return 'Bridge not reachable — is it deployed? (Render free sleeps when idle; first load wakes it.)';
+  }
+}
+
+const QUOTE_TO_ANGEL = new Map<string, AngelId>(
+  ASSETS.filter(a => a.angelId).map(a => [a.quoteSymbol, a.angelId as AngelId])
+);
+
+interface AngelLtp { market_open: boolean; stale: boolean; data: Record<string, { price: number | null; ts: string | null }> }
+let angelCache: { ts: number; data: AngelLtp } | null = null;
+const ANGEL_TTL_MS = 5000;
+
+async function fetchAngelLtp(): Promise<AngelLtp | null> {
+  const base = getBridgeUrl();
+  if (!base) return null;
+  if (angelCache && Date.now() - angelCache.ts < ANGEL_TTL_MS) return angelCache.data;
+  try {
+    const res = await fetch(`${base}/ltp`, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return angelCache?.data ?? null;
+    const data = (await res.json()) as AngelLtp;
+    angelCache = { ts: Date.now(), data };
+    return data;
+  } catch {
+    return angelCache?.data ?? null; // brief blips keep serving the last good read
+  }
+}
+
+/**
+ * Overlay a live Angel price onto a Yahoo-built quote. Change stays anchored
+ * to Yahoo's official previous close; only the live price swaps in — and only
+ * while the bridge reports the market open with a real tick. Anything else
+ * falls back to the untouched Yahoo quote. Never throws.
+ */
+export async function applyAngelOverlay(quoteSymbol: string, quote: Quote): Promise<Quote> {
+  try {
+    if (!QUOTE_TO_ANGEL.has(quoteSymbol)) return quote;
+    const ltp = await fetchAngelLtp();
+    if (!ltp || ltp.stale || !ltp.market_open) return quote;
+    const tick = ltp.data[QUOTE_TO_ANGEL.get(quoteSymbol)!];
+    if (!tick || typeof tick.price !== 'number' || tick.price <= 0) return quote;
+    const prevClose = quote.price - quote.change; // exact inverse of Yahoo construction
+    if (!(prevClose > 0)) return quote;
+    const change = tick.price - prevClose;
+    return { ...quote, price: tick.price, change,
+             changePct: (change / prevClose) * 100,
+             timestamp: Date.now(), source: 'angel' as const };
+  } catch {
+    return quote;
+  }
+}
 
 // ─── Binance Crypto WebSocket ─────────────────────────────────────────────────
 const BINANCE_WS = 'wss://stream.binance.com:9443/ws';
@@ -31,6 +112,7 @@ function connectBinance() {
         low24h: parseFloat(raw.l),
         volume: parseFloat(raw.v),
         timestamp: Date.now(),
+        source: 'binance',
       };
       listeners.get(quote.symbol)?.forEach(cb => cb(quote));
       listeners.get('*')?.forEach(cb => cb(quote));
@@ -142,7 +224,7 @@ export async function fetchYahooQuote(symbol: string): Promise<Quote | null> {
   const change = price - prevClose;
   const changePct = prevClose > 0 ? (change / prevClose) * 100 : 0;
 
-  return {
+  const yahooQuote: Quote = {
     symbol,
     price,
     change,
@@ -151,7 +233,11 @@ export async function fetchYahooQuote(symbol: string): Promise<Quote | null> {
     low24h:  meta.regularMarketDayLow  ?? price,
     volume:  meta.regularMarketVolume  ?? 0,
     timestamp: Date.now(),
+    source: 'yahoo',
   };
+
+  // Angel bridge (if configured): live price swaps in, Yahoo stays as fallback.
+  return applyAngelOverlay(symbol, yahooQuote);
 }
 
 // ─── Batch Quotes (in parallel chunks of 10) ──────────────────────────────────

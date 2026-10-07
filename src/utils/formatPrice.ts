@@ -8,6 +8,9 @@ export function getAssetCurrencyFormat(symbol: string): CurrencyFormat {
   if (symbol.endsWith('.NS')) {
     return { prefix: '₹', suffix: '', decimals: 2 };
   }
+  if (symbol.startsWith('^NSE') || symbol.startsWith('^BSE')) {
+    return { prefix: '₹', suffix: '', decimals: 2 }; // NSE/BSE index symbols
+  }
   if (symbol.includes('^TNX') || symbol.includes('^TYX') || symbol.includes('^IRX')) {
     return { prefix: '', suffix: '%', decimals: 2 };
   }
