@@ -67,21 +67,6 @@ jobs:
         with:
           files: release-output/DailyTrade.apk
           name: DailyTrade ${{ github.ref_name }}
-          body: |
-            ## 🚀 DailyTrade Release ${{ github.ref_name }}
-            
-            100% Free Paper Trading Simulator with Real Live Market Feeds.
-            
-            ### 📱 Download & Install:
-            - **Android APK**: Download [`DailyTrade.apk`](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/DailyTrade.apk) directly to your Android device.
-            
-            ### 💡 Highlights:
-            - 120+ Live Symbols (Crypto, Stocks, Oil, Forex, ETFs, Fixed Income)
-            - 100% Zero-CORS Live Market Streaming
-            - Local Offline-First Storage (No sign-up required)
-            
-            ---
-            *Developer: Luxie47 (luxie47@gmail.com | Discord: Luxie47)*  
-            *Check out our flagship productivity app: [DailyFlow](https://dailyflow-luxie.vercel.app)*
+          body_path: CHANGELOG.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

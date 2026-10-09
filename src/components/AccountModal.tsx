@@ -34,6 +34,7 @@ export function AccountModal({
   const [newCurrency, setNewCurrency] = useState<Currency>('USD');
   const [newCash, setNewCash] = useState('10000');
   const [error, setError] = useState('');
+  const [customTopUp, setCustomTopUp] = useState('');
 
   const active = accounts.find(a => a.id === activeAccountId) ?? accounts[0];
   const cfg = (active && CURRENCIES.find(c => c.code === active.currency)) ?? CURRENCIES[0];
@@ -108,11 +109,30 @@ export function AccountModal({
                   />
                   <span className="mono font-bold" style={{ fontSize: 14, color: 'var(--text-primary)' }}>DailyTrade</span>
                 </div>
-                <span className="badge badge-neutral" style={{ fontSize: 10 }}>v1.0.0</span>
+                <span className="badge badge-neutral" style={{ fontSize: 10 }}>v1.2.0</span>
               </div>
               <p style={{ fontFamily: 'var(--font-ui)', fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.5 }}>
                 We are <strong>open sourcing this app mentally and wholeheartedly for everyone</strong>. Built to provide a clean, uncompromising, 100% free paper trading platform with real live feeds and zero paywalls.
               </p>
+            </div>
+
+            {/* What's New in v1.2.0 */}
+            <div style={{ padding: '14px', background: 'var(--bg-card)', border: '1px solid var(--border-bright)' }}>
+              <div className="row between" style={{ alignItems: 'center', marginBottom: 8 }}>
+                <span className="mono font-bold" style={{ fontSize: 12, color: 'var(--text-primary)' }}>
+                  WHAT'S NEW IN v1.2.0
+                </span>
+                <span className="badge badge-bull" style={{ fontSize: 9 }}>LATEST</span>
+              </div>
+              <ul style={{ margin: 0, paddingLeft: 16, fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                <li><strong>Android Home Screen Widget</strong>: Live equity &amp; P&amp;L on home screen with tap-to-open.</li>
+                <li><strong>Full-Width P&amp;L Calendar</strong>: 20-week (140-day) GitHub heatmap with day win rates.</li>
+                <li><strong>Segmented Trade Panel</strong>: Live Order Book depth, 24h stats range, and 1-tap fast trade pad.</li>
+                <li><strong>Price Alerts</strong>: Target price triggers with native notifications.</li>
+                <li><strong>Instant Startup</strong>: Local price cache eliminates 0.00 boot lag.</li>
+                <li><strong>Stock Navigation</strong>: Tap any position or trade history to view stock.</li>
+                <li><strong>Custom Deposits</strong>: Deposit any custom sum into account funds.</li>
+              </ul>
             </div>
 
             {/* ⭐ Star This Repo Banner */}
@@ -509,7 +529,7 @@ export function AccountModal({
           <label style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             ADD FUNDS
           </label>
-          <div className="row gap-2" style={{ marginTop: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+          <div className="row gap-2" style={{ marginTop: 6, flexWrap: 'wrap' }}>
             {(cfg.usdRate >= 50
               ? [1000, 10000, 100000, 500000]
               : [1000, 5000, 10000, 50000]
@@ -523,6 +543,34 @@ export function AccountModal({
                 {cfg.symbol}{amt >= 100000 ? `${amt/100000}L` : amt >= 1000 ? `${amt/1000}K` : amt}
               </button>
             ))}
+          </div>
+          {/* Custom amount */}
+          <div className="row gap-2" style={{ marginTop: 6, marginBottom: 12 }}>
+            <input
+              className="input"
+              type="number"
+              placeholder={`Custom amount (${cfg.symbol})`}
+              value={customTopUp}
+              onChange={e => setCustomTopUp(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  const amt = parseFloat(customTopUp);
+                  if (amt > 0) { handleTopUp(amt); setCustomTopUp(''); }
+                }
+              }}
+              min="1"
+              style={{ flex: 1, fontSize: 12 }}
+            />
+            <button
+              className="btn btn-bull"
+              style={{ fontSize: 11, padding: '6px 14px', flexShrink: 0 }}
+              onClick={() => {
+                const amt = parseFloat(customTopUp);
+                if (amt > 0) { handleTopUp(amt); setCustomTopUp(''); }
+              }}
+            >
+              + ADD
+            </button>
           </div>
 
           {/* Reset & Storage Backup */}

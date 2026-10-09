@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Search, TrendingUp, TrendingDown, Star, Info } from 'lucide-react';
+import { Search, TrendingUp, TrendingDown, Star, Info, Bell } from 'lucide-react';
 import { ASSETS } from '../data/assets';
 import type { Asset, AssetClass, Quote } from '../types/market';
 import { subscribeAllQuotes, fetchBatchYahooQuotes } from '../services/marketData';
 import { Sparkline, syntheticSparkline } from './Sparkline';
 import { formatAssetPrice } from '../utils/formatPrice';
+import { PriceAlertModal } from './PriceAlertModal';
 
 type TabKey = AssetClass | 'all' | 'fav';
 
@@ -32,6 +33,7 @@ export function Watchlist({ onSelectAsset, selectedSymbol, prices, onPricesUpdat
   const [search, setSearch] = useState('');
   const [quotes, setQuotes] = useState<Record<string, Quote>>({});
   const [loading, setLoading] = useState(true);
+  const [alertAsset, setAlertAsset] = useState<Asset | null>(null);
 
   // Favorites state persisted in localStorage
   const [favorites, setFavorites] = useState<string[]>(() => {
@@ -250,6 +252,24 @@ export function Watchlist({ onSelectAsset, selectedSymbol, prices, onPricesUpdat
                 <Star size={14} fill={isFav ? 'var(--color-gold)' : 'transparent'} strokeWidth={1.5} />
               </button>
 
+              {/* Price Alert button */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setAlertAsset(asset);
+                }}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'var(--text-muted)',
+                  flexShrink: 0,
+                }}
+                title="Set price alert"
+              >
+                <Bell size={13} strokeWidth={1.5} />
+              </button>
+
               {/* Icon badge */}
               <div style={{
                 width: 34, height: 34, borderRadius: '50%',
@@ -344,6 +364,14 @@ export function Watchlist({ onSelectAsset, selectedSymbol, prices, onPricesUpdat
           );
         })}
       </div>
+
+      {alertAsset && (
+        <PriceAlertModal
+          asset={alertAsset}
+          currentPrice={prices[alertAsset.symbol] ?? quotes[alertAsset.symbol]?.price ?? 0}
+          onClose={() => setAlertAsset(null)}
+        />
+      )}
     </div>
   );
 }

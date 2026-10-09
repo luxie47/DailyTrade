@@ -54,7 +54,7 @@ export async function saveBackupToFile(state: AppState, fileName?: string): Prom
   const payload = {
     ...state,
     _backupMetadata: {
-      version: '1.0.0',
+      version: '1.2.0',
       exportedAt: Date.now(),
       platform: Capacitor.getPlatform(),
     }

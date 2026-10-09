@@ -29,3 +29,9 @@ android/build/
 android/.gradle/
 android/local.properties
 *.apk
+
+# Launch videos & brag outputs
+brag-output/
+brag-output*
+*.mp4
+*.webm

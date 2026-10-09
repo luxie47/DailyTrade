@@ -1,9 +1,10 @@
 import { TrendingUp, TrendingDown, Clock, BarChart2, X, Star, Heart, Info, ExternalLink, Download } from 'lucide-react';
 import type { Position, ClosedTrade, Order } from '../types/trade';
 import type { Account } from '../types/account';
+import type { Asset } from '../types/market';
 import { formatCurrency, formatPct } from '../services/storage';
 import { formatAssetPrice } from '../utils/formatPrice';
-import { ASSET_MAP } from '../data/assets';
+import { ASSET_MAP, ASSETS } from '../data/assets';
 
 interface Props {
   positions: Position[];
@@ -14,9 +15,10 @@ interface Props {
   onClosePosition: (posId: string, price: number) => void;
   onCancelOrder?: (orderId: string) => void;
   onOpenAbout?: () => void;
+  onSelectAsset?: (asset: Asset) => void;
 }
 
-export function PositionsList({ positions, orders, history, prices, account, onClosePosition, onCancelOrder, onOpenAbout }: Props) {
+export function PositionsList({ positions, orders, history, prices, account, onClosePosition, onCancelOrder, onOpenAbout, onSelectAsset }: Props) {
   const totalUnrPnL = positions.reduce((sum, p) => {
     const cur = prices[p.symbol] ?? p.entryPriceUSD;
     return sum + (cur - p.entryPriceUSD) * p.quantity;
@@ -25,8 +27,24 @@ export function PositionsList({ positions, orders, history, prices, account, onC
   const winTrades = history.filter(h => h.realizedPnLUSD > 0).length;
   const winRate = history.length > 0 ? (winTrades / history.length) * 100 : 0;
 
+  const handleOpenStock = (symbol: string) => {
+    if (!onSelectAsset) return;
+    const clean = symbol.replace('.NS', '').replace('USDT', '');
+    const asset =
+      ASSET_MAP[symbol] ||
+      ASSETS.find(a =>
+        a.symbol === symbol ||
+        a.quoteSymbol === symbol ||
+        a.symbol.replace('USDT', '') === clean ||
+        a.symbol.replace('.NS', '') === clean
+      );
+    if (asset) {
+      onSelectAsset(asset);
+    }
+  };
+
   return (
-    <div className="col" style={{ height: '100%', overflowY: 'auto' }}>
+    <div className="col">
       {/* Stats row */}
       <div className="row" style={{ borderBottom: '1px solid var(--border-dim)', background: 'var(--bg-card)' }}>
         {[
@@ -66,14 +84,26 @@ export function PositionsList({ positions, orders, history, prices, account, onC
         const asset = ASSET_MAP[pos.symbol];
 
         return (
-          <div key={pos.id} style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-dim)', background: 'var(--bg-canvas)' }}>
+          <div
+            key={pos.id}
+            onClick={() => handleOpenStock(pos.symbol)}
+            style={{
+              padding: '10px 12px',
+              borderBottom: '1px solid var(--border-dim)',
+              background: 'var(--bg-canvas)',
+              cursor: onSelectAsset ? 'pointer' : 'default',
+              transition: 'background 0.15s',
+            }}
+            title={onSelectAsset ? `Click to open ${pos.symbol} in Trade tab` : undefined}
+          >
             <div className="row between" style={{ marginBottom: 8 }}>
               <div className="col" style={{ gap: 2 }}>
-                <div className="row gap-2">
-                  <span className="mono font-bold" style={{ fontSize: 13 }}>
+                <div className="row gap-2" style={{ alignItems: 'center' }}>
+                  <span className="mono font-bold" style={{ fontSize: 13, textDecoration: onSelectAsset ? 'underline' : 'none', textUnderlineOffset: 3 }}>
                     {pos.symbol.replace('.NS','').replace('USDT','')}
                   </span>
                   <span className="badge badge-neutral" style={{ fontSize: 9 }}>LONG</span>
+                  {onSelectAsset && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>↗</span>}
                 </div>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)' }}>
                   {pos.quantity.toFixed(pos.quantity < 1 ? 6 : 4)} units @ {formatAssetPrice(pos.entryPriceUSD, pos.symbol)}
@@ -107,7 +137,10 @@ export function PositionsList({ positions, orders, history, prices, account, onC
               <button
                 className="btn btn-bear"
                 style={{ fontSize: 10, padding: '4px 10px' }}
-                onClick={() => onClosePosition(pos.id, curPrice)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClosePosition(pos.id, curPrice);
+                }}
               >
                 CLOSE
               </button>
@@ -125,16 +158,31 @@ export function PositionsList({ positions, orders, history, prices, account, onC
             </span>
           </div>
           {orders.map(o => (
-            <div key={o.id} style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-dim)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div
+              key={o.id}
+              onClick={() => handleOpenStock(o.symbol)}
+              style={{
+                padding: '8px 12px',
+                borderBottom: '1px solid var(--border-dim)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                cursor: onSelectAsset ? 'pointer' : 'default',
+              }}
+              title={onSelectAsset ? `Click to open ${o.symbol} in Trade tab` : undefined}
+            >
               <Clock size={12} color="var(--text-muted)" />
-              <span className="mono" style={{ fontSize: 11, flex: 1 }}>
+              <span className="mono" style={{ fontSize: 11, flex: 1, textDecoration: onSelectAsset ? 'underline' : 'none', textUnderlineOffset: 2 }}>
                 {o.side.toUpperCase()} {o.symbol.replace('.NS','').replace('USDT','')} @ {formatAssetPrice(o.limitPrice ?? 0, o.symbol)} × {o.quantity}
               </span>
               <span className="badge badge-neutral" style={{ fontSize: 9 }}>PENDING</span>
               {onCancelOrder && (
                 <button
                   type="button"
-                  onClick={() => onCancelOrder(o.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCancelOrder(o.id);
+                  }}
                   title="Cancel order"
                   style={{
                     background: 'none', border: '1px solid var(--border-dim)',
@@ -164,11 +212,25 @@ export function PositionsList({ positions, orders, history, prices, account, onC
       {history.slice(0, 50).map(h => {
         const isUp = h.realizedPnLUSD >= 0;
         return (
-          <div key={h.id} className="row between" style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-dim)' }}>
+          <div
+            key={h.id}
+            onClick={() => handleOpenStock(h.symbol)}
+            className="row between"
+            style={{
+              padding: '8px 12px',
+              borderBottom: '1px solid var(--border-dim)',
+              cursor: onSelectAsset ? 'pointer' : 'default',
+              transition: 'background 0.15s',
+            }}
+            title={onSelectAsset ? `Click to open ${h.symbol} in Trade tab` : undefined}
+          >
             <div className="col" style={{ gap: 2 }}>
-              <span className="mono font-bold" style={{ fontSize: 12 }}>
-                {h.symbol.replace('.NS','').replace('USDT','')}
-              </span>
+              <div className="row gap-1" style={{ alignItems: 'center' }}>
+                <span className="mono font-bold" style={{ fontSize: 12, textDecoration: onSelectAsset ? 'underline' : 'none', textUnderlineOffset: 2 }}>
+                  {h.symbol.replace('.NS','').replace('USDT','')}
+                </span>
+                {onSelectAsset && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>↗</span>}
+              </div>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)' }}>
                 {new Date(h.exitTime).toLocaleDateString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}
               </span>

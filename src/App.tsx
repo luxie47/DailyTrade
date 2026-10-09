@@ -10,7 +10,9 @@ import { TradeModal }       from './components/TradeModal';
 import { PositionsList }    from './components/PositionsList';
 import { PortfolioChart }   from './components/PortfolioChart';
 import { PortfolioBreakdown } from './components/PortfolioBreakdown';
+import { PnLCalendar }        from './components/PnLCalendar';
 import { AssetDetail }      from './components/AssetDetail';
+import { AssetTradePanel }  from './components/AssetTradePanel';
 import { AccountModal }     from './components/AccountModal';
 import { ExportModal }      from './components/ExportModal';
 import { ImportModal }      from './components/ImportModal';
@@ -20,8 +22,9 @@ import { ASSETS, ASSET_MAP } from './data/assets';
 import type { Asset, Timeframe } from './types/market';
 import { formatCurrency, type AppState } from './services/storage';
 import { checkAndAutoRestore } from './services/backupService';
+import { checkAlerts } from './services/priceAlerts';
 import {
-  fetchBinanceCandles, fetchCandles, fetchYahooQuote,
+  fetchBinanceCandles, fetchCandles, fetchYahooQuote, fetchBatchYahooQuotes,
   subscribeLiveQuote, subscribeAllQuotes, startSyntheticTicks,
 } from './services/marketData';
 import type { Candle } from './types/market';
@@ -49,7 +52,12 @@ export default function App() {
   const [candles, setCandles] = useState<Candle[]>([]);
   const [livePrice, setLivePrice] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [prices, setPrices] = useState<Record<string, number>>({});
+  const [prices, setPrices] = useState<Record<string, number>>(() => {
+    try {
+      const cached = localStorage.getItem('dt_prices_cache');
+      return cached ? JSON.parse(cached) : {};
+    } catch { return {}; }
+  });
   const [showTradeModal, setShowTradeModal] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -115,7 +123,12 @@ export default function App() {
 
   // Merge incoming price updates into shared prices map
   const handlePricesUpdate = useCallback((update: Record<string, number>) => {
-    setPrices(prev => ({ ...prev, ...update }));
+    setPrices(prev => {
+      const next = { ...prev, ...update };
+      try { localStorage.setItem('dt_prices_cache', JSON.stringify(next)); } catch {}
+      checkAlerts(next);
+      return next;
+    });
   }, []);
 
   // Load historical candles whenever asset or timeframe changes
@@ -207,7 +220,47 @@ export default function App() {
     return () => clearInterval(equityTimerRef.current!);
   }, [prices, engine.recordEquity]);
 
+  // Boot: fetch prices for non-crypto held positions immediately (no Markets tab visit needed)
+  useEffect(() => {
+    const nonCryptoPositions = engine.state.positions.filter(p => {
+      const asset = ASSET_MAP[p.symbol];
+      return asset && asset.class !== 'crypto';
+    });
+    if (nonCryptoPositions.length === 0) return;
+    const symbols = [...new Set(
+      nonCryptoPositions.map(p => ASSET_MAP[p.symbol]?.quoteSymbol ?? p.symbol)
+    )];
+    fetchBatchYahooQuotes(symbols).then(results => {
+      const priceMap: Record<string, number> = {};
+      for (const pos of nonCryptoPositions) {
+        const asset = ASSET_MAP[pos.symbol];
+        if (!asset) continue;
+        const q = results[asset.quoteSymbol];
+        if (q) priceMap[pos.symbol] = q.price;
+      }
+      if (Object.keys(priceMap).length > 0) handlePricesUpdate(priceMap);
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const totalEquityUSD = engine.calcEquity(prices);
+
+  // Sync equity & PnL to Android Home Screen Widget (when running on Android)
+  useEffect(() => {
+    try {
+      const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean; Plugins?: { WidgetBridge?: { updateWidget: (data: { equity: string; pnl: string }) => void } } } }).Capacitor;
+      if (!cap?.isNativePlatform?.()) return;
+      const plugin = cap.Plugins?.WidgetBridge;
+      if (!plugin) return;
+      const startEquity = engine.activeAccount.startingCashUSD;
+      const totalPnl = totalEquityUSD - startEquity;
+      plugin.updateWidget({
+        equity: formatCurrency(totalEquityUSD, engine.activeAccount.currency),
+        pnl: `${totalPnl >= 0 ? '+' : ''}${formatCurrency(totalPnl, engine.activeAccount.currency, true)} all time`,
+      });
+    } catch {
+      // ignore
+    }
+  }, [totalEquityUSD, engine.activeAccount.currency, engine.activeAccount.startingCashUSD]);
   const unrPnLUSD = engine.calcUnrealisedPnL(prices);
   const curPrice = livePrice ?? prices[selectedAsset.symbol] ?? 0;
 
@@ -356,6 +409,21 @@ export default function App() {
                 );
               })}
             </div>
+
+            {/* Segmented Trade Panel: Order Book / 24H Stats / 1-Tap Trade */}
+            <AssetTradePanel
+              asset={selectedAsset}
+              currentPrice={curPrice}
+              candles={candles}
+              account={engine.activeAccount}
+              position={engine.positions.find(p => p.symbol === selectedAsset.symbol)}
+              orders={engine.orders.filter(o => o.symbol === selectedAsset.symbol)}
+              onMarketBuy={(qty) => engine.marketBuy(selectedAsset.symbol, qty, curPrice)}
+              onMarketSell={(qty) => engine.marketBuy(selectedAsset.symbol, qty, curPrice)}
+              onClosePosition={engine.closePosition}
+              onOpenFullTradeModal={() => setShowTradeModal(true)}
+              onOpenStatsModal={() => setDetailAsset(selectedAsset)}
+            />
           </div>
         )}
 
@@ -384,6 +452,10 @@ export default function App() {
               account={engine.activeAccount}
               totalEquityUSD={totalEquityUSD}
             />
+            <PnLCalendar
+              history={engine.history}
+              account={engine.activeAccount}
+            />
             <PositionsList
               positions={engine.positions}
               orders={engine.orders}
@@ -392,6 +464,7 @@ export default function App() {
               account={engine.activeAccount}
               onClosePosition={engine.closePosition}
               onCancelOrder={engine.cancelOrder}
+              onSelectAsset={handleSelectAsset}
               onOpenAbout={() => { setAccountModalView('about'); setShowAccountModal(true); }}
             />
           </div>
