@@ -22,16 +22,16 @@ export function Header({ account, totalEquityUSD, unrPnLUSD, onOpenAccountModal,
   return (
     <header
       className="app-header row between"
-      style={{ padding: '0 16px', gap: 8 }}
+      style={{ padding: '0 10px', gap: 6, minHeight: 48 }}
     >
       {/* Left: Brand Logo & Account */}
-      <div className="row gap-2" style={{ alignItems: 'center' }}>
+      <div className="row gap-1" style={{ alignItems: 'center', flexShrink: 0 }}>
         <img
           src="/logo.png"
           alt="DailyTrade"
           style={{
-            width: 24,
-            height: 24,
+            width: 22,
+            height: 22,
             borderRadius: 4,
             border: '1px solid rgba(255, 255, 255, 0.15)',
             objectFit: 'contain',
@@ -40,40 +40,69 @@ export function Header({ account, totalEquityUSD, unrPnLUSD, onOpenAccountModal,
           }}
         />
         <button
-          className="btn btn-ghost row gap-2"
-          style={{ padding: '6px 10px', borderColor: 'var(--border-dim)' }}
+          className="btn btn-ghost row gap-1"
+          style={{ padding: '4px 7px', borderColor: 'var(--border-dim)' }}
           onClick={onOpenAccountModal}
         >
-          <Wallet size={14} strokeWidth={2} />
-          <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 600, letterSpacing: '0.01em', color: 'var(--text-secondary)' }}>
-            {account.name.length > 12 ? account.name.slice(0, 12) + '…' : account.name}
+          <Wallet size={12} strokeWidth={2} />
+          <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 600, letterSpacing: '0.01em', color: 'var(--text-secondary)', maxWidth: 75, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {account.name}
           </span>
-          <ChevronDown size={12} />
+          <ChevronDown size={10} />
         </button>
       </div>
 
       {/* Center: Balance */}
-      <div className="col" style={{ alignItems: 'center', flex: 1 }}>
-        <span className="num font-bold" style={{ fontSize: 17, letterSpacing: '-0.02em' }}>
+      <div
+        className="col"
+        style={{
+          alignItems: 'center',
+          justifyContent: 'center',
+          flex: 1,
+          minWidth: 0,
+          padding: '0 2px',
+          textAlign: 'center',
+          overflow: 'hidden'
+        }}
+      >
+        <span
+          className="num font-bold"
+          style={{
+            fontSize: 14,
+            letterSpacing: '-0.02em',
+            whiteSpace: 'nowrap',
+            lineHeight: 1.15
+          }}
+        >
           {formatCurrency(totalEquityUSD, account.currency, true)}
         </span>
         <span
-          className="mono text-xs"
-          style={{ color: isUp ? 'var(--color-bull)' : 'var(--color-bear)' }}
+          className="mono"
+          style={{
+            fontSize: 9.5,
+            fontWeight: 600,
+            color: isUp ? 'var(--color-bull)' : 'var(--color-bear)',
+            whiteSpace: 'nowrap',
+            lineHeight: 1.15,
+            letterSpacing: '-0.01em',
+            textOverflow: 'ellipsis',
+            overflow: 'hidden',
+            maxWidth: '100%'
+          }}
         >
-          {isUp ? '+' : ''}{formatCurrency(pnlUSD, account.currency, true)} ({isUp ? '+' : ''}{pnlPct.toFixed(1)}%)
+          {isUp ? '+' : ''}{formatCurrency(pnlUSD, account.currency, true)} ({isUp ? '+' : ''}{pnlPct.toFixed(0)}%)
         </span>
       </div>
 
       {/* Right: Quick Top-Up */}
       <button
         className="btn btn-outline row gap-1"
-        style={{ padding: '6px 10px', fontSize: 11 }}
+        style={{ padding: '4px 7px', fontSize: 11, flexShrink: 0 }}
         onClick={() => onQuickTopUp(currency.usdRate >= 50 ? 100000 / currency.usdRate : 10000)}
         title={`Add ${currency.symbol}${currency.usdRate >= 50 ? '1,00,000' : '10,000'}`}
       >
-        <Plus size={12} />
-        <span>{currency.symbol}{currency.usdRate >= 50 ? '1L' : '10K'}</span>
+        <Plus size={11} />
+        <span className="font-bold">{currency.symbol}{currency.usdRate >= 50 ? '1L' : '10K'}</span>
       </button>
     </header>
   );

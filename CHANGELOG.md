@@ -2,6 +2,13 @@
 
 All notable changes to DailyTrade documented in this file.
 
+## [1.2.2] - 2026-10-10
+
+### Fixed
+- **Mobile Header Balance Display**: Prevented horizontal layout crowding and overflow on compact mobile devices (360px width). Standardized responsive padding, constrained account switch button width with ellipsis, and centered balance metrics with adaptive typography.
+
+---
+
 ## [1.2.1] - 2026-10-10
 
 ### Added
