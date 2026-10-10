@@ -10,7 +10,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-8.x-646cff.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Capacitor](https://img.shields.io/badge/Capacitor-Android-119eff.svg?logo=capacitor&logoColor=white)](https://capacitorjs.com/)
-[![Android APK](https://img.shields.io/badge/APK-v1.2.0-3DDC84.svg?logo=android&logoColor=white)](https://github.com/luxie47/DailyTrade/releases/download/v1.2.0/DailyTrade.apk)
+[![Android APK](https://img.shields.io/badge/APK-v1.2.1-3DDC84.svg?logo=android&logoColor=white)](https://github.com/luxie47/DailyTrade/releases/download/v1.2.1/DailyTrade.apk)
 [![TradingView Charts](https://img.shields.io/badge/Powered%20By-Lightweight%20Charts-00e676.svg)](https://tradingview.github.io/lightweight-charts/)
 [![Get it on Orion Store](https://img.shields.io/badge/Get%20it%20on-Orion%20Store-7c3aed.svg)](https://rookieenough.github.io/Orion-Data/redirect.html?id=dailytrade)
 [![Build APK](https://github.com/luxie47/DailyTrade/actions/workflows/build-apk.yml/badge.svg)](.github/workflows/build-apk.yml)
@@ -20,7 +20,7 @@
 **A high-performance, minimalist paper trading simulator with real live market feeds and zero real money involved.**  
 *Practice trading stocks, crypto, crude oil, forex, index mutual funds, and fixed deposits with zero risk.*
 
-[Download v1.2.0 APK](https://github.com/luxie47/DailyTrade/releases/download/v1.2.0/DailyTrade.apk) • [Get it on Orion Store](https://rookieenough.github.io/Orion-Data/redirect.html?id=dailytrade) • [Featured Project: DailyFlow](https://dailyflow-luxie.vercel.app) • [Star on GitHub](https://github.com/luxie47/DailyTrade) • [Features](#-features) • [Data Flow](#-architecture--data-flow) • [Roadmap](#-secure-roadmap) • [Disclaimer](#-legal--financial-disclaimer)
+[Download v1.2.1 APK](https://github.com/luxie47/DailyTrade/releases/download/v1.2.1/DailyTrade.apk) • [Get it on Orion Store](https://rookieenough.github.io/Orion-Data/redirect.html?id=dailytrade) • [Featured Project: DailyFlow](https://dailyflow-luxie.vercel.app) • [Star on GitHub](https://github.com/luxie47/DailyTrade) • [Features](#-features) • [Data Flow](#-architecture--data-flow) • [Roadmap](#-secure-roadmap) • [Disclaimer](#-legal--financial-disclaimer)
 
 <br/>
 
@@ -79,14 +79,16 @@ If you find DailyTrade helpful or want to support ongoing open-source developmen
 ## ✨ Features
 
 * **100% Free & Open Source**: No sign-ups, no subscriptions, zero paywalls, zero telemetry.
-* **Android Home Screen Widget (v1.1.0)**: Native Android widget displaying real-time total equity & P&L on your phone's home screen with tap-to-open integration.
+* **Dual Android Home Screen Widgets (v1.2.1)**: Native Android widgets with 1-tap launch integration:
+  - **Tiny Ticker (2x1)**: Ultra-compact live asset tracker showing real-time price & green/red delta pill.
+  - **OLED Portfolio HUD Card (2x2)**: Rounded OLED card displaying total equity, active position count, and dynamic P&L pills.
+* **Hardened Stop Loss & Target Engine (v1.2.1)**: Mathematical execution with true One-Cancels-the-Other (OCO) cleanup and active position protection editing directly from your portfolio.
+* **Native Push Notifications & Market Pulse (v1.2.1)**: Android 13+ compliant system alerts for trade executions, stop loss triggers, and periodic 12-hour portfolio market pulse notifications.
 * **Daily P&L Heatmap Calendar (v1.1.0)**: Full-width 20-week (140-day) GitHub-style calendar tracking daily profitability, day win rates, and interactive trade inspections.
 * **Segmented Trade Panel (v1.1.0)**: Live streaming Order Book with depth fill bars, 24h market metrics with range slider, and 1-tap quick execution pad.
-* **Price Alerts & Notifications (v1.1.0)**: Target price alert thresholds with native Android push notifications and desktop browser fallback.
 * **Real Live Market Feeds**: Sub-second live WebSocket streaming from Binance for Crypto and direct live quotes from Yahoo Finance for global equities and commodities.
 * **TradingView Aesthetic**: Pure OLED dark brutalist theme (`#000000`), custom dotted dynamic price lines, crisp sparklines, and typography (`Inter` for UI, `JetBrains Mono` for tabular prices).
 * **Multi-Asset Ecosystem**: 180+ assets spanning 6 distinct asset classes (US & Indian Equities, Energy Commodities, Forex Pairs, Index ETFs, and Treasury/FD Yields).
-* **Realistic Order Simulation**: Market orders, Limit orders, Stop Loss & Take Profit (with true One-Cancels-the-Other / OCO cleanup).
 * **Multi-Currency Accounts**: Switch seamlessly between `$ USD`, `€ EUR`, `₹ INR`, `£ GBP`, and `¥ JPY` with auto-converted portfolio analytics.
 * **Automated Fast APK Generation**: GitHub Actions workflow compiles and packages `DailyTrade.apk` in under 3 minutes on every release.
 * **Offline-First & PWA Install**: 100% on-device local storage, instant cache boot (<1ms), zero telemetry, and 1-click installable as a PWA.

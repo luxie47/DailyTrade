@@ -57,6 +57,67 @@ export async function requestNotificationPermission(): Promise<boolean> {
 }
 
 let notifId = 1000;
+export async function dispatchSystemNotification(title: string, body: string): Promise<void> {
+  try {
+    await LocalNotifications.schedule({
+      notifications: [{
+        id: notifId++,
+        title,
+        body,
+        schedule: { at: new Date(Date.now() + 50) },
+        smallIcon: 'ic_launcher',
+      }],
+    });
+    return;
+  } catch {
+    // Ignore native error, fallback to browser
+  }
+
+  if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+    try {
+      new Notification(title, { body });
+    } catch {}
+  }
+}
+
+const CHEESY_KEY = 'dt_last_cheesy_notif';
+const MARKET_PULSE_MESSAGES = [
+  "📈 Market Pulse: Review your open positions and active orders.",
+  "💼 Portfolio Update: Check today's market performance and equity.",
+  "📊 Active Sessions: Global markets are moving. Inspect your watchlist.",
+  "🎯 Risk Check: Ensure your stop losses and profit targets remain set.",
+  "⚡ Volatility Alert: Significant price movement observed across major assets.",
+  "🔍 12-Hour Recap: Check your unrealized P&L and daily return heatmap.",
+  "🔔 Market Movers: Notable swings recorded on global equities and crypto.",
+  "🛡️ Protection Reminder: Review your active trade stop loss thresholds.",
+  "📈 Market Activity: New market highs and dips forming across monitored assets.",
+  "🌐 Session Transition: European and US trading sessions are active.",
+];
+
+export async function checkCheesyMarketNotification(accountName?: string, topAssetSymbol?: string): Promise<void> {
+  try {
+    const rawLast = localStorage.getItem(CHEESY_KEY);
+    const lastTime = rawLast ? parseInt(rawLast, 10) : 0;
+    const now = Date.now();
+    const TWELVE_HOURS = 12 * 60 * 60 * 1000;
+
+    // Check if 12 hours have elapsed since last cheesy alert
+    if (lastTime && now - lastTime < TWELVE_HOURS) return;
+
+    localStorage.setItem(CHEESY_KEY, now.toString());
+
+    // Select random message
+    const msg = MARKET_PULSE_MESSAGES[Math.floor(Math.random() * MARKET_PULSE_MESSAGES.length)];
+    const title = topAssetSymbol
+      ? `📈 DailyTrade — ${topAssetSymbol} & Markets`
+      : accountName
+      ? `💼 DailyTrade — ${accountName}`
+      : '📊 DailyTrade Market Pulse';
+
+    await dispatchSystemNotification(title, msg);
+  } catch {}
+}
+
 export async function checkAlerts(prices: Record<string, number>): Promise<void> {
   const alerts = loadAlerts();
   if (alerts.length === 0) return;
@@ -87,23 +148,6 @@ export async function checkAlerts(prices: Record<string, number>): Promise<void>
     const title = `📈 Price Alert — ${cleanSym}`;
     const body = `Price ${alert.direction === 'above' ? 'reached' : 'dropped to'} ${price.toLocaleString()}`;
 
-    try {
-      await LocalNotifications.schedule({
-        notifications: [{
-          id: notifId++,
-          title,
-          body,
-          schedule: { at: new Date(Date.now() + 100) },
-          smallIcon: 'ic_launcher',
-        }],
-      });
-    } catch {
-      // Browser environment fallback
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        try {
-          new Notification(title, { body });
-        } catch {}
-      }
-    }
+    await dispatchSystemNotification(title, body);
   }
 }

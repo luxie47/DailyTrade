@@ -22,7 +22,7 @@ import { ASSETS, ASSET_MAP } from './data/assets';
 import type { Asset, Timeframe } from './types/market';
 import { formatCurrency, type AppState } from './services/storage';
 import { checkAndAutoRestore } from './services/backupService';
-import { checkAlerts } from './services/priceAlerts';
+import { checkAlerts, dispatchSystemNotification, checkCheesyMarketNotification } from './services/priceAlerts';
 import {
   fetchBinanceCandles, fetchCandles, fetchYahooQuote, fetchBatchYahooQuotes,
   subscribeLiveQuote, subscribeAllQuotes, startSyntheticTicks,
@@ -44,7 +44,12 @@ export default function App() {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
-  const engine = useTradingEngine(addToast);
+  const handleNotify = useCallback((title: string, message: string, type: 'success' | 'error' | 'info') => {
+    addToast(title, message, type);
+    dispatchSystemNotification(title, message);
+  }, [addToast]);
+
+  const engine = useTradingEngine(handleNotify);
   const [tab, setTab] = useState<Tab>('trade');
   const [selectedAsset, setSelectedAsset] = useState<Asset>(DEFAULT_ASSET);
   const [detailAsset, setDetailAsset] = useState<Asset | null>(null);
@@ -127,9 +132,15 @@ export default function App() {
       const next = { ...prev, ...update };
       try { localStorage.setItem('dt_prices_cache', JSON.stringify(next)); } catch {}
       checkAlerts(next);
+      engine.checkLimitOrders(next);
       return next;
     });
-  }, []);
+  }, [engine.checkLimitOrders]);
+
+  // Periodic 12h cheesy market pulse notification on app start
+  useEffect(() => {
+    checkCheesyMarketNotification(engine.activeAccount.name, engine.positions[0]?.symbol);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load historical candles whenever asset or timeframe changes
   useEffect(() => {
@@ -244,23 +255,44 @@ export default function App() {
 
   const totalEquityUSD = engine.calcEquity(prices);
 
-  // Sync equity & PnL to Android Home Screen Widget (when running on Android)
+  // Sync equity, PnL & ticker to Android Home Screen Widgets (when running on Android)
   useEffect(() => {
     try {
-      const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean; Plugins?: { WidgetBridge?: { updateWidget: (data: { equity: string; pnl: string }) => void } } } }).Capacitor;
+      const cap = (window as unknown as {
+        Capacitor?: {
+          isNativePlatform?: () => boolean;
+          Plugins?: {
+            WidgetBridge?: {
+              updateWidget: (data: {
+                equity: string;
+                pnl: string;
+                symbol?: string;
+                price?: string;
+                change?: string;
+                count?: string;
+              }) => void;
+            };
+          };
+        };
+      }).Capacitor;
       if (!cap?.isNativePlatform?.()) return;
       const plugin = cap.Plugins?.WidgetBridge;
       if (!plugin) return;
       const startEquity = engine.activeAccount.startingCashUSD;
       const totalPnl = totalEquityUSD - startEquity;
+      const curPriceVal = livePrice ?? prices[selectedAsset.symbol] ?? 0;
       plugin.updateWidget({
         equity: formatCurrency(totalEquityUSD, engine.activeAccount.currency),
         pnl: `${totalPnl >= 0 ? '+' : ''}${formatCurrency(totalPnl, engine.activeAccount.currency, true)} all time`,
+        symbol: selectedAsset.symbol.replace('USDT', '').replace('.NS', ''),
+        price: formatAssetPrice(curPriceVal, selectedAsset.symbol),
+        change: totalPnl >= 0 ? '+PROFIT' : '-LOSS',
+        count: `${engine.positions.length} pos`,
       });
     } catch {
       // ignore
     }
-  }, [totalEquityUSD, engine.activeAccount.currency, engine.activeAccount.startingCashUSD]);
+  }, [totalEquityUSD, engine.activeAccount.currency, engine.activeAccount.startingCashUSD, engine.positions.length, selectedAsset.symbol, livePrice, prices]);
   const unrPnLUSD = engine.calcUnrealisedPnL(prices);
   const curPrice = livePrice ?? prices[selectedAsset.symbol] ?? 0;
 
@@ -465,6 +497,7 @@ export default function App() {
               onClosePosition={engine.closePosition}
               onCancelOrder={engine.cancelOrder}
               onSelectAsset={handleSelectAsset}
+              onUpdateSLTP={engine.updatePositionSLTP}
               onOpenAbout={() => { setAccountModalView('about'); setShowAccountModal(true); }}
             />
           </div>

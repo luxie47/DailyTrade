@@ -120,18 +120,17 @@ export function AccountModal({
             <div style={{ padding: '14px', background: 'var(--bg-card)', border: '1px solid var(--border-bright)' }}>
               <div className="row between" style={{ alignItems: 'center', marginBottom: 8 }}>
                 <span className="mono font-bold" style={{ fontSize: 12, color: 'var(--text-primary)' }}>
-                  WHAT'S NEW IN v1.2.0
+                  WHAT'S NEW IN v1.2.1
                 </span>
                 <span className="badge badge-bull" style={{ fontSize: 9 }}>LATEST</span>
               </div>
               <ul style={{ margin: 0, paddingLeft: 16, fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                <li><strong>Android Home Screen Widget</strong>: Live equity &amp; P&amp;L on home screen with tap-to-open.</li>
-                <li><strong>Full-Width P&amp;L Calendar</strong>: 20-week (140-day) GitHub heatmap with day win rates.</li>
-                <li><strong>Segmented Trade Panel</strong>: Live Order Book depth, 24h stats range, and 1-tap fast trade pad.</li>
-                <li><strong>Price Alerts</strong>: Target price triggers with native notifications.</li>
-                <li><strong>Instant Startup</strong>: Local price cache eliminates 0.00 boot lag.</li>
-                <li><strong>Stock Navigation</strong>: Tap any position or trade history to view stock.</li>
-                <li><strong>Custom Deposits</strong>: Deposit any custom sum into account funds.</li>
+                <li><strong>Fixed Stop Loss &amp; Targets</strong>: Mathematical execution fix (SL triggers on price drops, TP triggers on gains) with true OCO cancellation.</li>
+                <li><strong>Active Position Protection</strong>: Set or modify Stop Loss &amp; Target Price directly on open holdings via <code>SL/TP</code> button.</li>
+                <li><strong>Tiny Ticker Android Widget (2x1)</strong>: Ultra-compact live ticker on phone home screen showing real-time price and delta badge.</li>
+                <li><strong>OLED Portfolio HUD Card (2x2)</strong>: Redesigned high-contrast dark card with live equity, position count, and colored P&amp;L pill.</li>
+                <li><strong>Native System Push Notifications</strong>: Added Android 13+ permissions and system alerts for trade executions.</li>
+                <li><strong>Periodic Market Pulse</strong>: 12-hour automated portfolio &amp; market update notifications to keep you informed of active price movements.</li>
               </ul>
             </div>
 
@@ -299,11 +298,11 @@ export function AccountModal({
               <div className="row gap-2" style={{ alignItems: 'center', marginBottom: 6 }}>
                 <span style={{ fontSize: 14 }}>🍵</span>
                 <span className="mono font-bold" style={{ fontSize: 11, color: '#fb923c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  SUPPORT DEVELOPMENT
+                  BUY ME A CHAI / DONATE
                 </span>
               </div>
               <p style={{ fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: 10 }}>
-                DailyTrade is 100% free with no ads. If it's been useful, buying me a chai keeps this project alive!
+                DailyTrade is 100% free with no ads. If it helps you learn or trade with confidence, buying me a chai / donating keeps this project alive!
               </p>
               <a
                 href="https://buymeachai.ezee.li/luxie47"
@@ -317,7 +316,7 @@ export function AccountModal({
                   textDecoration: 'none', borderRadius: 2, letterSpacing: '0.05em',
                 }}
               >
-                🍵 BUY ME A CHAI
+                🍵 BUY ME A CHAI / DONATE
               </a>
             </div>
 

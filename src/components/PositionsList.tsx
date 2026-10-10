@@ -1,4 +1,5 @@
-import { TrendingUp, TrendingDown, Clock, BarChart2, X, Star, Heart, Info, ExternalLink, Download } from 'lucide-react';
+import { useState } from 'react';
+import { TrendingUp, TrendingDown, Clock, BarChart2, X, Star, Heart, Info, ExternalLink, Download, Shield, Target, AlertTriangle } from 'lucide-react';
 import type { Position, ClosedTrade, Order } from '../types/trade';
 import type { Account } from '../types/account';
 import type { Asset } from '../types/market';
@@ -16,9 +17,13 @@ interface Props {
   onCancelOrder?: (orderId: string) => void;
   onOpenAbout?: () => void;
   onSelectAsset?: (asset: Asset) => void;
+  onUpdateSLTP?: (posId: string, sl?: number, tp?: number) => void;
 }
 
-export function PositionsList({ positions, orders, history, prices, account, onClosePosition, onCancelOrder, onOpenAbout, onSelectAsset }: Props) {
+export function PositionsList({ positions, orders, history, prices, account, onClosePosition, onCancelOrder, onOpenAbout, onSelectAsset, onUpdateSLTP }: Props) {
+  const [sltpPos, setSltpPos] = useState<Position | null>(null);
+  const [modalSl, setModalSl] = useState('');
+  const [modalTp, setModalTp] = useState('');
   const totalUnrPnL = positions.reduce((sum, p) => {
     const cur = prices[p.symbol] ?? p.entryPriceUSD;
     return sum + (cur - p.entryPriceUSD) * p.quantity;
@@ -130,20 +135,52 @@ export function PositionsList({ positions, orders, history, prices, account, onC
                 </span>
               </div>
             </div>
-            <div className="row between">
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-secondary)' }}>
-                Current: {formatAssetPrice(curPrice, pos.symbol)}
-              </span>
-              <button
-                className="btn btn-bear"
-                style={{ fontSize: 10, padding: '4px 10px' }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClosePosition(pos.id, curPrice);
-                }}
-              >
-                CLOSE
-              </button>
+            <div className="row between" style={{ alignItems: 'center' }}>
+              <div className="col gap-1">
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-secondary)' }}>
+                  Current: {formatAssetPrice(curPrice, pos.symbol)}
+                </span>
+                {(pos.stopLoss || pos.takeProfit) && (
+                  <div className="row gap-1" style={{ fontSize: 9 }}>
+                    {pos.stopLoss && (
+                      <span className="badge" style={{ color: 'var(--color-bear)', background: 'var(--bg-bear)', border: '1px solid var(--color-bear)', padding: '1px 5px', fontSize: 9 }}>
+                        SL: {formatAssetPrice(pos.stopLoss, pos.symbol)}
+                      </span>
+                    )}
+                    {pos.takeProfit && (
+                      <span className="badge" style={{ color: 'var(--color-bull)', background: 'var(--bg-bull)', border: '1px solid var(--color-bull)', padding: '1px 5px', fontSize: 9 }}>
+                        TP: {formatAssetPrice(pos.takeProfit, pos.symbol)}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="row gap-2">
+                {onUpdateSLTP && (
+                  <button
+                    className="btn btn-outline"
+                    style={{ fontSize: 10, padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: 3 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSltpPos(pos);
+                      setModalSl(pos.stopLoss ? pos.stopLoss.toString() : '');
+                      setModalTp(pos.takeProfit ? pos.takeProfit.toString() : '');
+                    }}
+                  >
+                    <Shield size={10} /> SL/TP
+                  </button>
+                )}
+                <button
+                  className="btn btn-bear"
+                  style={{ fontSize: 10, padding: '4px 10px' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClosePosition(pos.id, curPrice);
+                  }}
+                >
+                  CLOSE
+                </button>
+              </div>
             </div>
           </div>
         );
@@ -173,9 +210,20 @@ export function PositionsList({ positions, orders, history, prices, account, onC
             >
               <Clock size={12} color="var(--text-muted)" />
               <span className="mono" style={{ fontSize: 11, flex: 1, textDecoration: onSelectAsset ? 'underline' : 'none', textUnderlineOffset: 2 }}>
-                {o.side.toUpperCase()} {o.symbol.replace('.NS','').replace('USDT','')} @ {formatAssetPrice(o.limitPrice ?? 0, o.symbol)} × {o.quantity}
+                {o.type === 'stop_loss' ? 'STOP' : o.type === 'take_profit' ? 'TARGET' : o.side.toUpperCase()}{' '}
+                {o.symbol.replace('.NS','').replace('USDT','')} @ {formatAssetPrice(o.limitPrice ?? 0, o.symbol)} × {o.quantity}
               </span>
-              <span className="badge badge-neutral" style={{ fontSize: 9 }}>PENDING</span>
+              <span
+                className="badge"
+                style={{
+                  fontSize: 9,
+                  background: o.type === 'stop_loss' ? 'var(--bg-bear)' : o.type === 'take_profit' ? 'var(--bg-bull)' : 'var(--bg-subtle)',
+                  color: o.type === 'stop_loss' ? 'var(--color-bear)' : o.type === 'take_profit' ? 'var(--color-bull)' : 'var(--text-muted)',
+                  border: `1px solid ${o.type === 'stop_loss' ? 'var(--color-bear)' : o.type === 'take_profit' ? 'var(--color-bull)' : 'var(--border-dim)'}`,
+                }}
+              >
+                {o.type === 'stop_loss' ? 'STOP LOSS' : o.type === 'take_profit' ? 'TARGET' : 'LIMIT'}
+              </span>
               {onCancelOrder && (
                 <button
                   type="button"
@@ -322,6 +370,95 @@ export function PositionsList({ positions, orders, history, prices, account, onC
           Developer: Luxie47 (luxiee47@gmail.com | Discord: Luxie47) • Educational simulator only.
         </span>
       </div>
+
+      {/* ── Stop Loss & Take Profit Protection Modal ── */}
+      {sltpPos && onUpdateSLTP && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setSltpPos(null)}>
+          <div className="modal-sheet" style={{ maxWidth: 380 }}>
+            <div className="row between" style={{ marginBottom: 12 }}>
+              <div className="col gap-1">
+                <span className="mono font-bold" style={{ fontSize: 14 }}>
+                  PROTECT {sltpPos.symbol.replace('.NS', '').replace('USDT', '')}
+                </span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)' }}>
+                  Entry: {formatAssetPrice(sltpPos.entryPriceUSD, sltpPos.symbol)}
+                </span>
+              </div>
+              <button className="btn btn-ghost" style={{ padding: '4px 6px' }} onClick={() => setSltpPos(null)}>
+                <X size={15} />
+              </button>
+            </div>
+
+            <div className="col gap-3" style={{ marginBottom: 16 }}>
+              {/* Stop Loss Input */}
+              <div className="col gap-1">
+                <label className="row between" style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 600, color: 'var(--color-bear)' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <AlertTriangle size={11} /> STOP LOSS (SELL IF ≤)
+                  </span>
+                  <span
+                    style={{ fontSize: 10, cursor: 'pointer', textDecoration: 'underline' }}
+                    onClick={() => setModalSl((sltpPos.entryPriceUSD * 0.95).toFixed(2))}
+                  >
+                    -5% Preset
+                  </span>
+                </label>
+                <input
+                  className="input"
+                  type="number"
+                  placeholder="Leave empty to remove"
+                  value={modalSl}
+                  onChange={e => setModalSl(e.target.value)}
+                  step="any"
+                />
+              </div>
+
+              {/* Take Profit Input */}
+              <div className="col gap-1">
+                <label className="row between" style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 600, color: 'var(--color-bull)' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <Target size={11} /> TAKE PROFIT (SELL IF ≥)
+                  </span>
+                  <span
+                    style={{ fontSize: 10, cursor: 'pointer', textDecoration: 'underline' }}
+                    onClick={() => setModalTp((sltpPos.entryPriceUSD * 1.05).toFixed(2))}
+                  >
+                    +5% Preset
+                  </span>
+                </label>
+                <input
+                  className="input"
+                  type="number"
+                  placeholder="Leave empty to remove"
+                  value={modalTp}
+                  onChange={e => setModalTp(e.target.value)}
+                  step="any"
+                />
+              </div>
+            </div>
+
+            <div className="row gap-2">
+              <button
+                className="btn btn-ghost flex-1"
+                onClick={() => setSltpPos(null)}
+              >
+                CANCEL
+              </button>
+              <button
+                className="btn btn-bull flex-1"
+                onClick={() => {
+                  const sl = modalSl ? parseFloat(modalSl) : undefined;
+                  const tp = modalTp ? parseFloat(modalTp) : undefined;
+                  onUpdateSLTP(sltpPos.id, sl, tp);
+                  setSltpPos(null);
+                }}
+              >
+                SAVE PROTECTION
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

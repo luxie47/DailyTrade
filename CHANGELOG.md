@@ -2,6 +2,22 @@
 
 All notable changes to DailyTrade documented in this file.
 
+## [1.2.1] - 2026-10-10
+
+### Added
+- **Tiny Ticker Home Screen Widget (2x1)**: Ultra-compact Android widget (`TickerWidget.java`, `widget_ticker.xml`) displaying real-time live ticker symbol, current market price, and 24h percentage delta pill.
+- **Redesigned OLED Portfolio HUD Widget (2x2)**: Modern dark card (`widget_portfolio.xml`) featuring rounded corners (`16dp`), hairline border, total equity, dynamic green/red P&L pill, and active position count.
+- **Position Protection Editor (`SL/TP`)**: Direct Stop Loss and Target Price management modal on active holdings inside Portfolio tab. Set, adjust, or remove protective stops with 1 tap.
+- **Periodic Market Pulse**: 12-hour automated portfolio & market update notifications to keep traders informed of active price movements.
+- **Native Push & System Notifications**: Full Android 13+ `POST_NOTIFICATIONS` and `VIBRATE` permission integration; native alerts dispatch on Stop Loss triggers, Target Price fills, and limit orders.
+
+### Fixed
+- **Stop Loss Execution Inversion**: Resolved critical bug where Stop Loss was treated as an ordinary limit sell (`price >= stopLoss`) causing immediate liquidation on buy. Stop loss orders now evaluate strictly on price declines (`price <= stopLoss`) and take profits on gains (`price >= takeProfit`).
+- **Global Order Matching Loop**: Fixed ticker isolation bug where pending limit orders and stop losses were only checked for the single active screen asset. The trading engine now evaluates all pending orders against all batch price ticks across the portfolio.
+- **Clean OCO Pair Cancellation**: Executing a stop loss or take profit now cancels only its linked sibling order for that position, preserving independent pending limit orders.
+
+---
+
 ## [1.2.0] - 2026-10-09
 
 ### Added

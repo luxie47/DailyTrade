@@ -4,36 +4,74 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#16161a"
-    android:padding="12dp">
+    android:background="@drawable/widget_bg_card"
+    android:padding="14dp">
 
+    <!-- Header Row -->
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/widget_label"
+            android:text="DAILYTRADE"
+            android:textColor="#94a3b8"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.08"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"/>
+
+        <TextView
+            android:id="@+id/widget_count"
+            android:text="0 pos"
+            android:textColor="#64748b"
+            android:textSize="9sp"
+            android:fontFamily="monospace"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
+
+    <!-- Subtitle / Caption -->
     <TextView
-        android:id="@+id/widget_label"
-        android:text="DailyTrade"
-        android:textColor="#6b7280"
-        android:textSize="10sp"
+        android:text="TOTAL EQUITY"
+        android:textColor="#64748b"
+        android:textSize="9sp"
         android:fontFamily="monospace"
+        android:layout_marginTop="6dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
 
+    <!-- Equity Amount -->
     <TextView
         android:id="@+id/widget_equity"
         android:text="$—"
-        android:textColor="#f3f4f6"
-        android:textSize="20sp"
+        android:textColor="#f8fafc"
+        android:textSize="22sp"
         android:textStyle="bold"
         android:fontFamily="monospace"
-        android:layout_marginTop="2dp"
+        android:layout_marginTop="1dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
 
+    <!-- PnL Badge -->
     <TextView
         android:id="@+id/widget_pnl"
-        android:text="+$0.00 today"
+        android:text="+$0.00 all time"
         android:textColor="#00e676"
         android:textSize="11sp"
         android:fontFamily="monospace"
-        android:layout_marginTop="3dp"
+        android:textStyle="bold"
+        android:background="@drawable/widget_pill_bull"
+        android:paddingLeft="8dp"
+        android:paddingRight="8dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:layout_marginTop="6dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
 </LinearLayout>

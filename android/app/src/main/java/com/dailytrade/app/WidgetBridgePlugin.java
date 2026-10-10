@@ -11,7 +11,15 @@ public class WidgetBridgePlugin extends Plugin {
     public void updateWidget(PluginCall call) {
         String equity = call.getString("equity", "$—");
         String pnl = call.getString("pnl", "");
-        PortfolioWidget.updateAll(getContext(), equity, pnl);
+        String count = call.getString("count", "0 pos");
+
+        String symbol = call.getString("symbol", "BTC");
+        String price = call.getString("price", "$—");
+        String change = call.getString("change", "+0.0%");
+
+        PortfolioWidget.updateAll(getContext(), equity, pnl, count);
+        TickerWidget.updateAll(getContext(), symbol, price, change);
+
         call.resolve();
     }
 }

@@ -76,25 +76,28 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
     setState(prev => {
       const acc = prev.accounts.find(a => a.id === prev.activeAccountId)!;
       const updatedAcc = { ...acc, cashUSD: acc.cashUSD - cost };
+      const posId = crypto.randomUUID();
       const newPos: Position = {
-        id: crypto.randomUUID(),
+        id: posId,
         accountId: prev.activeAccountId,
         symbol,
         quantity,
         entryPriceUSD: priceUSD,
         entryTime: Date.now(),
+        stopLoss,
+        takeProfit,
       };
-      // Attach SL/TP as pending orders if given
+      // Attach SL/TP as pending orders linked to positionId
       const newOrders: Order[] = [];
       if (stopLoss) newOrders.push({
         id: crypto.randomUUID(), accountId: prev.activeAccountId,
-        symbol, side: 'sell', type: 'limit', quantity,
-        limitPrice: stopLoss, status: 'pending', createdAt: Date.now(),
+        symbol, side: 'sell', type: 'stop_loss', quantity,
+        limitPrice: stopLoss, positionId: posId, status: 'pending', createdAt: Date.now(),
       });
       if (takeProfit) newOrders.push({
         id: crypto.randomUUID(), accountId: prev.activeAccountId,
-        symbol, side: 'sell', type: 'limit', quantity,
-        limitPrice: takeProfit, status: 'pending', createdAt: Date.now(),
+        symbol, side: 'sell', type: 'take_profit', quantity,
+        limitPrice: takeProfit, positionId: posId, status: 'pending', createdAt: Date.now(),
       });
       return {
         ...prev,
@@ -132,16 +135,72 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
         `${pos.symbol}: ${pnl >= 0 ? '+' : ''}${formatCurrency(pnl, acc.currency)}`,
         pnl >= 0 ? 'success' : 'error'
       );
+      // Cancel paired SL/TP pending orders for this position
+      const isPosOrder = (o: Order) =>
+        o.positionId === positionId ||
+        (o.symbol === pos.symbol && (o.type === 'stop_loss' || o.type === 'take_profit'));
+
       return {
         ...prev,
         accounts: prev.accounts.map(a =>
           a.id === prev.activeAccountId ? { ...acc, cashUSD: acc.cashUSD + proceeds } : a
         ),
         positions: prev.positions.filter(p => p.id !== positionId),
-        orders: prev.orders.filter(o => o.symbol !== pos.symbol),
+        orders: prev.orders.filter(o => !isPosOrder(o)),
         history: [trade, ...prev.history].slice(0, 500),
       };
     });
+  }, [setState, onNotify]);
+
+  // ── Set / Update Stop Loss & Take Profit on Existing Position ──────────────
+  const updatePositionSLTP = useCallback((positionId: string, stopLoss?: number, takeProfit?: number) => {
+    setState(prev => {
+      const pos = prev.positions.find(p => p.id === positionId);
+      if (!pos) return prev;
+
+      // Filter out existing SL/TP orders for this position
+      const remainingOrders = prev.orders.filter(o =>
+        o.positionId !== positionId &&
+        !(o.symbol === pos.symbol && o.accountId === pos.accountId && (o.type === 'stop_loss' || o.type === 'take_profit'))
+      );
+      const newOrders: Order[] = [];
+      if (stopLoss && stopLoss > 0) {
+        newOrders.push({
+          id: crypto.randomUUID(),
+          accountId: pos.accountId,
+          symbol: pos.symbol,
+          side: 'sell',
+          type: 'stop_loss',
+          quantity: pos.quantity,
+          limitPrice: stopLoss,
+          positionId,
+          status: 'pending',
+          createdAt: Date.now(),
+        });
+      }
+      if (takeProfit && takeProfit > 0) {
+        newOrders.push({
+          id: crypto.randomUUID(),
+          accountId: pos.accountId,
+          symbol: pos.symbol,
+          side: 'sell',
+          type: 'take_profit',
+          quantity: pos.quantity,
+          limitPrice: takeProfit,
+          positionId,
+          status: 'pending',
+          createdAt: Date.now(),
+        });
+      }
+      return {
+        ...prev,
+        positions: prev.positions.map(p =>
+          p.id === positionId ? { ...p, stopLoss, takeProfit } : p
+        ),
+        orders: [...remainingOrders, ...newOrders],
+      };
+    });
+    onNotify?.('Protection Updated', 'Stop Loss / Target Price set', 'info');
   }, [setState, onNotify]);
 
   // ── Limit Order ───────────────────────────────────────────────────────────
@@ -174,18 +233,27 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
     onNotify?.('Order Cancelled', 'Pending order was cancelled', 'info');
   }, [setState, onNotify]);
 
-  // ── Check pending limit orders against current prices ────────────────────
+  // ── Check pending limit, stop loss, and take profit orders against prices ──
   const checkLimitOrders = useCallback((prices: Record<string, number>) => {
     setState(prev => {
       let updated = { ...prev };
-      for (const order of prev.orders.filter(o => o.status === 'pending' && o.type === 'limit')) {
+      for (const order of prev.orders.filter(o => o.status === 'pending')) {
         const price = prices[order.symbol];
-        if (!price) continue;
-        const shouldFill = order.side === 'buy'
-          ? price <= (order.limitPrice ?? Infinity)
-          : price >= (order.limitPrice ?? 0);
+        if (!price || price <= 0) continue;
+
+        let shouldFill = false;
+        if (order.type === 'limit') {
+          shouldFill = order.side === 'buy'
+            ? price <= (order.limitPrice ?? Infinity)
+            : price >= (order.limitPrice ?? 0);
+        } else if (order.type === 'take_profit') {
+          shouldFill = price >= (order.limitPrice ?? 0);
+        } else if (order.type === 'stop_loss') {
+          shouldFill = price <= (order.limitPrice ?? Infinity);
+        }
         if (!shouldFill) continue;
-        // fill it
+
+        // Fill buy order
         if (order.side === 'buy') {
           const cost = price * order.quantity;
           const acc = updated.accounts.find(a => a.id === order.accountId);
@@ -205,9 +273,12 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
           };
           onNotify?.('Limit Buy Filled', `Bought ${order.quantity} ${order.symbol} @ ${formatAssetPrice(price, order.symbol)}`, 'success');
         } else {
-          // sell — find matching position
-          const pos = updated.positions.find(p => p.symbol === order.symbol && p.accountId === order.accountId);
+          // Sell order: find matching position (by linked positionId first)
+          const pos = order.positionId
+            ? updated.positions.find(p => p.id === order.positionId)
+            : updated.positions.find(p => p.symbol === order.symbol && p.accountId === order.accountId);
           if (!pos) continue;
+
           const fillQty = Math.min(order.quantity, pos.quantity);
           const proceeds = price * fillQty;
           const pnl = (price - pos.entryPriceUSD) * fillQty;
@@ -226,19 +297,37 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
               ? updated.positions.filter(p => p.id !== pos.id)
               : updated.positions.map(p => p.id === pos.id ? { ...p, quantity: p.quantity - fillQty } : p),
             history: [trade, ...updated.history].slice(0, 500),
-            // Cancel other pending orders for this closed position (OCO)
+            // Cancel sibling SL/TP paired to this position if position fully closed
             orders: updated.orders.map(o => {
-              if (o.id === order.id) return { ...o, status: 'filled' as const, filledAt: Date.now(), filledPrice: price };
-              if (pos.quantity <= fillQty && o.symbol === order.symbol && o.accountId === order.accountId && o.status === 'pending') {
-                return { ...o, status: 'cancelled' as const };
+              if (o.id === order.id) {
+                return { ...o, status: 'filled' as const, filledAt: Date.now(), filledPrice: price };
+              }
+              if (pos.quantity <= fillQty && o.status === 'pending') {
+                if (order.positionId && o.positionId === order.positionId) {
+                  return { ...o, status: 'cancelled' as const };
+                }
+                if (!order.positionId && o.symbol === order.symbol && o.accountId === order.accountId && (o.type === 'stop_loss' || o.type === 'take_profit')) {
+                  return { ...o, status: 'cancelled' as const };
+                }
               }
               return o;
             }),
           };
+
+          let notifTitle = 'Limit Sell Filled';
+          let notifType: 'success' | 'error' | 'info' = pnl >= 0 ? 'success' : 'error';
+          if (order.type === 'stop_loss') {
+            notifTitle = '🛑 Stop Loss Triggered';
+            notifType = 'error';
+          } else if (order.type === 'take_profit') {
+            notifTitle = '🎯 Target Reached (Take Profit)';
+            notifType = 'success';
+          }
+
           onNotify?.(
-            pnl >= 0 ? 'Target Reached (Profit)' : 'Stop Loss Triggered',
+            notifTitle,
             `Sold ${fillQty} ${order.symbol} @ ${formatAssetPrice(price, order.symbol)} (${pnl >= 0 ? '+' : ''}${formatCurrency(pnl, curr)})`,
-            pnl >= 0 ? 'success' : 'error'
+            notifType
           );
         }
       }
@@ -324,6 +413,7 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
     state, activeAccount, positions, orders, history,
     calcUnrealisedPnL, calcEquity, recordEquity,
     marketBuy, closePosition, placeLimitOrder, cancelOrder, checkLimitOrders,
+    updatePositionSLTP,
     createAccount, switchAccount, topUpAccount, resetAccount, deleteAccount, updateAccountCurrency,
     replaceState,
   };
