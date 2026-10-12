@@ -2,6 +2,16 @@
 
 All notable changes to DailyTrade documented in this file.
 
+## [1.2.5] - 2026-10-12
+
+### Fixed
+- **Live Candle Rollover (Chart Sizing Bug)**: Resolved the root cause of the running candle appearing unusually large and stretched in real time. The previous implementation compared a historical market-open timestamp against the current wall-clock time, causing the rollover condition to fire on every single price tick instead of at the correct timeframe boundary. Fixed by computing the exact next TF boundary (`floor(cur.time / step + 1) * step`) and only spawning a new candle when the wall clock crosses it. New candle open timestamps are now snapped to the TF grid (`floor(now / step) * step`) so `lightweight-charts` places bars at correct x-positions with proper sizing.
+- **Live Candle Stale Ref on Timeframe Switch**: Switching timeframes (e.g. 1D → 1m) no longer carries over a stale candle reference from the previous timeframe. `lastCandleRef` is now explicitly reset when `timeframe` changes, preventing immediate erroneous rollover on the new timeframe.
+- **1-Tap Trade SELL Button Not Wired**: `onMarketSell` was declared in `AssetTradePanel` props but silently dropped from the component destructuring. The 1-TAP TRADE panel had no sell execution path. Fixed by correctly destructuring `onMarketSell` and adding a live **SELL** button beside the BUY button. The SELL button computes quantity from the USD amount (capped to open position size) and is visually disabled with 40% opacity when no position is held.
+- **Indian Stock 84x Value Inflation in Portfolio Breakdown**: `PortfolioBreakdown` computed position values as `price × qty` without applying the `getAssetUSDMultiplier(symbol)` INR→USD conversion factor. Indian `.NS`/`.BO` assets (priced in Rupees) appeared at 84× their true USD value in the Portfolio Allocation chart. Fixed by applying the multiplier consistently, matching the rest of the trading engine.
+
+---
+
 ## [1.2.4] - 2026-10-12
 
 ### Added

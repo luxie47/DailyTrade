@@ -30,6 +30,7 @@ export function AssetTradePanel({
   position,
   orders,
   onMarketBuy,
+  onMarketSell,
   onClosePosition,
   onOpenFullTradeModal,
   onOpenStatsModal,
@@ -102,6 +103,16 @@ export function AssetTradePanel({
     const priceUSD = currentPrice * getAssetUSDMultiplier(asset.symbol);
     const qty = usd / priceUSD;
     onMarketBuy(qty);
+  };
+
+  const handleExecuteQuickSell = () => {
+    if (!position || position.quantity <= 0) return;
+    const usd = parseFloat(quickAmountUSD);
+    if (!usd || usd <= 0 || !currentPrice || currentPrice <= 0) return;
+    const priceUSD = currentPrice * getAssetUSDMultiplier(asset.symbol);
+    // Cap sell qty to available position size
+    const qty = Math.min(usd / priceUSD, position.quantity);
+    onMarketSell(qty);
   };
 
   return (
@@ -370,7 +381,7 @@ export function AssetTradePanel({
               ))}
             </div>
 
-            {/* Amount input & 1-tap Buy */}
+            {/* Amount input & 1-tap Buy / Sell */}
             <div style={{ display: 'flex', gap: 6 }}>
               <div style={{ position: 'relative', flex: 1 }}>
                 <input
@@ -385,10 +396,19 @@ export function AssetTradePanel({
               </div>
               <button
                 className="btn btn-bull"
-                style={{ fontSize: 11, padding: '8px 16px', fontWeight: 700, flexShrink: 0 }}
+                style={{ fontSize: 11, padding: '8px 12px', fontWeight: 700, flexShrink: 0 }}
                 onClick={handleExecuteQuickBuy}
               >
-                1-TAP BUY
+                BUY
+              </button>
+              <button
+                className="btn btn-bear"
+                style={{ fontSize: 11, padding: '8px 12px', fontWeight: 700, flexShrink: 0, opacity: position ? 1 : 0.4, cursor: position ? 'pointer' : 'not-allowed' }}
+                onClick={handleExecuteQuickSell}
+                disabled={!position}
+                title={!position ? 'No open position to sell' : `Sell up to ${position.quantity.toFixed(4)} units`}
+              >
+                SELL
               </button>
             </div>
 

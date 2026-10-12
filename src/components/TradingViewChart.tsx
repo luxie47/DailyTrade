@@ -10,6 +10,14 @@ import { formatAssetPrice } from '../utils/formatPrice';
 
 const TIMEFRAMES: Timeframe[] = ['1m', '5m', '15m', '1h', '1D'];
 
+const TF_SECONDS: Record<Timeframe, number> = {
+  '1m': 60,
+  '5m': 300,
+  '15m': 900,
+  '1h': 3600,
+  '1D': 86400,
+};
+
 interface Props {
   symbol: string;
   name: string;
@@ -86,6 +94,8 @@ export function TradingViewChart({
       color: 'rgba(255,255,255,0.12)',
       priceFormat: { type: 'volume' },
       priceScaleId: 'vol',
+      lastValueVisible: false,
+      priceLineVisible: false,
     });
     chart.priceScale('vol').applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
 
@@ -103,6 +113,11 @@ export function TradingViewChart({
   }, []);
 
   const lastCandleRef = useRef<Candle | null>(null);
+
+  // ── Reset live candle ref on timeframe change ────────────────────────────
+  useEffect(() => {
+    lastCandleRef.current = null;
+  }, [timeframe]);
 
   // ── Reset state on symbol change ──────────────────────────────────────────
   useEffect(() => {
@@ -155,25 +170,55 @@ export function TradingViewChart({
     const cur = lastCandleRef.current;
     if (!cur) return;
 
-    cur.high = Math.max(cur.high, livePrice);
-    cur.low  = Math.min(cur.low, livePrice);
-    cur.close = livePrice;
+    const stepSec = TF_SECONDS[timeframe] || 300;
+    const nowSec = Math.floor(Date.now() / 1000);
 
-    candleRef.current?.update({
-      time: cur.time as Time,
-      open: cur.open,
-      high: cur.high,
-      low:  cur.low,
-      close: cur.close,
-    });
-    areaRef.current?.update({ time: cur.time as Time, value: livePrice });
+    // Compute the exact second when the NEXT candle boundary starts.
+    // e.g. for 1h: if cur.time = 1728720000 (16:00:00), nextBoundary = 1728723600 (17:00:00)
+    // This avoids the historical-timestamp vs wall-clock comparison bug.
+    const nextBoundary = (Math.floor((cur.time as number) / stepSec) + 1) * stepSec;
+
+    if (nowSec >= nextBoundary) {
+      // Snap new candle open time to TF grid boundary so lightweight-charts
+      // places it at the correct x-position (prevents oversized bar rendering).
+      const alignedTime = Math.floor(nowSec / stepSec) * stepSec;
+      const newCandle: Candle = {
+        time: alignedTime,
+        open: livePrice,
+        high: livePrice,
+        low: livePrice,
+        close: livePrice,
+      };
+      lastCandleRef.current = newCandle;
+      candleRef.current?.update({
+        time: newCandle.time as Time,
+        open: newCandle.open,
+        high: newCandle.high,
+        low: newCandle.low,
+        close: newCandle.close,
+      });
+      areaRef.current?.update({ time: newCandle.time as Time, value: livePrice });
+    } else {
+      cur.high  = Math.max(cur.high, livePrice);
+      cur.low   = Math.min(cur.low, livePrice);
+      cur.close = livePrice;
+
+      candleRef.current?.update({
+        time: cur.time as Time,
+        open: cur.open,
+        high: cur.high,
+        low:  cur.low,
+        close: cur.close,
+      });
+      areaRef.current?.update({ time: cur.time as Time, value: livePrice });
+    }
 
     // ── Current price dotted line (green on up, red on down) ──────────────
     if (candleRef.current) {
       if (curLineRef.current) {
         try { candleRef.current.removePriceLine(curLineRef.current); } catch { /* ok */ }
       }
-      const isUp = cur.close >= cur.open;
+      const isUp = livePrice >= cur.open;
       curLineRef.current = candleRef.current.createPriceLine({
         price: livePrice,
         color: isUp ? 'rgba(0, 230, 118, 0.85)' : 'rgba(255, 61, 113, 0.85)',
@@ -183,7 +228,7 @@ export function TradingViewChart({
         title: '',
       });
     }
-  }, [livePrice]);
+  }, [livePrice, timeframe]);
 
   // ── Entry price dotted line ──────────────────────────────────────────────
   useEffect(() => {
