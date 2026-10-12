@@ -157,6 +157,7 @@ export const ASSETS: Asset[] = [
   { symbol:'ARM',       name:'Arm Holdings',      class:'stock',     quoteSymbol:'ARM',           iconLetters:'ARM',  iconColor:'#0091bd' },
   { symbol:'TSM',       name:'Taiwan Semiconductor', class:'stock',  quoteSymbol:'TSM',           iconLetters:'TSM',  iconColor:'#e11d48' },
   { symbol:'ASML',      name:'ASML Holding',      class:'stock',     quoteSymbol:'ASML',          iconLetters:'ASML', iconColor:'#1e3a8a' },
+  { symbol:'ASUUY',     name:'ASUS (ASUSTeK Computer)', class:'stock', quoteSymbol:'ASUUY',       iconLetters:'ASUS', iconColor:'#00539b' },
 
   // US Finance, Retail, Healthcare & Defense
   { symbol:'BRK-B',     name:'Berkshire Hathaway',class:'stock',     quoteSymbol:'BRK-B',         iconLetters:'BRK',  iconColor:'#1e3a8a' },

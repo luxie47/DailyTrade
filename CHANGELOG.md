@@ -2,6 +2,21 @@
 
 All notable changes to DailyTrade documented in this file.
 
+## [1.2.3] - 2026-10-12
+
+### Added
+- **Global Tech Asset Expansion**: Integrated ASUS (`ASUUY` — ASUSTeK Computer Inc.) with live multi-tier quotes into the global equity catalog.
+
+### Fixed
+- **Market Order Execution & Sell Support**: Added full BUY / SELL side toggling to the primary Market Order modal with automatic position sizing, open-lot validation, and graceful button disabling when no open position is held.
+- **1-Tap Quick Trade Sell Execution**: Corrected copy-paste dispatch in `AssetTradePanel` to invoke `marketSell` instead of `marketBuy`.
+- **Mobile Viewport & Bottom Panel Visibility**: Resolved layout overflow where the segmented trade panel (Order Book / 24H Stats / 1-Tap Trade) was pushed off screen on compact mobile displays; pinned chart canvas with `flexShrink: 0` and enabled fluid flex constraints.
+- **Candlestick Chart Sizing & Jitter Elimination**: Fixed issue where low-bar timeframes stretched candlesticks into oversized blocks; established standard `barSpacing: 7`, edge margins, and fluid real-time scroll alignment without border flicker.
+- **Multi-Currency PnL & Order Accuracy**: Normalized Indian NSE (`.NS`) quotes against base USD cash, eliminating an 84x profit/cost exaggeration on non-USD holdings; added real-time price synchronization indicators to active position cards.
+- **Environment & Credential Hardening**: Strengthened repository `.gitignore` rules against environment files (`.env*`) and cryptographic keystores (`*.keystore`, `*.jks`).
+
+---
+
 ## [1.2.2] - 2026-10-10
 
 ### Fixed

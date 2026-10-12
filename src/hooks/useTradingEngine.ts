@@ -3,7 +3,7 @@ import { loadState, saveState, formatCurrency, type AppState } from '../services
 import { triggerAutoBackup } from '../services/backupService';
 import type { Currency } from '../types/account';
 import type { Position, ClosedTrade, Order } from '../types/trade';
-import { formatAssetPrice } from '../utils/formatPrice';
+import { formatAssetPrice, getAssetUSDMultiplier } from '../utils/formatPrice';
 
 export type NotificationCallback = (title: string, message: string, type: 'success' | 'error' | 'info') => void;
 
@@ -32,7 +32,8 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
   const calcUnrealisedPnL = useCallback((prices: Record<string, number>): number => {
     return positions.reduce((sum, pos) => {
       const cur = prices[pos.symbol] ?? pos.entryPriceUSD;
-      return sum + (cur - pos.entryPriceUSD) * pos.quantity;
+      const mult = getAssetUSDMultiplier(pos.symbol);
+      return sum + (cur - pos.entryPriceUSD) * pos.quantity * mult;
     }, 0);
   }, [positions]);
 
@@ -40,7 +41,8 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
   const calcEquity = useCallback((prices: Record<string, number>): number => {
     const positionValue = positions.reduce((sum, pos) => {
       const cur = prices[pos.symbol] ?? pos.entryPriceUSD;
-      return sum + cur * pos.quantity;
+      const mult = getAssetUSDMultiplier(pos.symbol);
+      return sum + cur * pos.quantity * mult;
     }, 0);
     return activeAccount.cashUSD + positionValue;
   }, [positions, activeAccount]);
@@ -69,7 +71,8 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
     stopLoss?: number,
     takeProfit?: number
   ): string | null => {
-    const cost = priceUSD * quantity;
+    const mult = getAssetUSDMultiplier(symbol);
+    const cost = priceUSD * quantity * mult;
     if (cost > activeAccount.cashUSD) return 'Insufficient cash';
     if (quantity <= 0) return 'Invalid quantity';
 
@@ -116,8 +119,9 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
       const pos = prev.positions.find(p => p.id === positionId);
       if (!pos) return prev;
 
-      const proceeds = currentPriceUSD * pos.quantity;
-      const pnl = (currentPriceUSD - pos.entryPriceUSD) * pos.quantity;
+      const mult = getAssetUSDMultiplier(pos.symbol);
+      const proceeds = currentPriceUSD * pos.quantity * mult;
+      const pnl = (currentPriceUSD - pos.entryPriceUSD) * pos.quantity * mult;
       const trade: ClosedTrade = {
         id: crypto.randomUUID(),
         accountId: prev.activeAccountId,
@@ -151,6 +155,60 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
       };
     });
   }, [setState, onNotify]);
+
+  // ── Market Sell (by symbol — closes or reduces existing long position) ────────
+  const marketSell = useCallback((
+    symbol: string,
+    quantity: number,
+    priceUSD: number
+  ): string | null => {
+    const pos = positions.find(p => p.symbol === symbol);
+    if (!pos) return 'No open position to sell';
+    if (quantity <= 0) return 'Invalid quantity';
+    if (quantity > pos.quantity) return `Max sellable: ${pos.quantity}`;
+
+    const mult = getAssetUSDMultiplier(symbol);
+    const proceeds = priceUSD * quantity * mult;
+    const pnl = (priceUSD - pos.entryPriceUSD) * quantity * mult;
+    const isFullClose = quantity >= pos.quantity;
+
+    setState(prev => {
+      const trade: ClosedTrade = {
+        id: crypto.randomUUID(),
+        accountId: prev.activeAccountId,
+        symbol: pos.symbol,
+        quantity,
+        entryPriceUSD: pos.entryPriceUSD,
+        exitPriceUSD: priceUSD,
+        realizedPnLUSD: pnl,
+        entryTime: pos.entryTime,
+        exitTime: Date.now(),
+      };
+      const isPosOrder = (o: Order) =>
+        o.positionId === pos.id ||
+        (o.symbol === pos.symbol && (o.type === 'stop_loss' || o.type === 'take_profit'));
+
+      return {
+        ...prev,
+        accounts: prev.accounts.map(a =>
+          a.id === prev.activeAccountId ? { ...a, cashUSD: a.cashUSD + proceeds } : a
+        ),
+        positions: isFullClose
+          ? prev.positions.filter(p => p.id !== pos.id)
+          : prev.positions.map(p => p.id === pos.id ? { ...p, quantity: p.quantity - quantity } : p),
+        orders: isFullClose ? prev.orders.filter(o => !isPosOrder(o)) : prev.orders,
+        history: [trade, ...prev.history].slice(0, 500),
+      };
+    });
+
+    const acc = state.accounts.find(a => a.id === state.activeAccountId) ?? state.accounts[0];
+    onNotify?.(
+      pnl >= 0 ? 'Sell Executed (Profit)' : 'Sell Executed (Loss)',
+      `Sold ${quantity} ${symbol} @ ${formatAssetPrice(priceUSD, symbol)} (${pnl >= 0 ? '+' : ''}${formatCurrency(pnl, acc.currency)})`,
+      pnl >= 0 ? 'success' : 'error'
+    );
+    return null;
+  }, [positions, state.accounts, state.activeAccountId, setState, onNotify]);
 
   // ── Set / Update Stop Loss & Take Profit on Existing Position ──────────────
   const updatePositionSLTP = useCallback((positionId: string, stopLoss?: number, takeProfit?: number) => {
@@ -255,7 +313,8 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
 
         // Fill buy order
         if (order.side === 'buy') {
-          const cost = price * order.quantity;
+          const mult = getAssetUSDMultiplier(order.symbol);
+          const cost = price * order.quantity * mult;
           const acc = updated.accounts.find(a => a.id === order.accountId);
           if (!acc || acc.cashUSD < cost) {
             updated = { ...updated, orders: updated.orders.map(o => o.id === order.id ? { ...o, status: 'cancelled' as const } : o) };
@@ -280,8 +339,9 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
           if (!pos) continue;
 
           const fillQty = Math.min(order.quantity, pos.quantity);
-          const proceeds = price * fillQty;
-          const pnl = (price - pos.entryPriceUSD) * fillQty;
+          const mult = getAssetUSDMultiplier(order.symbol);
+          const proceeds = price * fillQty * mult;
+          const pnl = (price - pos.entryPriceUSD) * fillQty * mult;
           const trade: ClosedTrade = {
             id: crypto.randomUUID(), accountId: order.accountId, symbol: order.symbol,
             quantity: fillQty, entryPriceUSD: pos.entryPriceUSD, exitPriceUSD: price,
@@ -412,7 +472,7 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
   return {
     state, activeAccount, positions, orders, history,
     calcUnrealisedPnL, calcEquity, recordEquity,
-    marketBuy, closePosition, placeLimitOrder, cancelOrder, checkLimitOrders,
+    marketBuy, marketSell, closePosition, placeLimitOrder, cancelOrder, checkLimitOrders,
     updatePositionSLTP,
     createAccount, switchAccount, topUpAccount, resetAccount, deleteAccount, updateAccountCurrency,
     replaceState,

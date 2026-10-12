@@ -4,7 +4,7 @@ import type { Position, ClosedTrade, Order } from '../types/trade';
 import type { Account } from '../types/account';
 import type { Asset } from '../types/market';
 import { formatCurrency, formatPct } from '../services/storage';
-import { formatAssetPrice } from '../utils/formatPrice';
+import { formatAssetPrice, getAssetUSDMultiplier } from '../utils/formatPrice';
 import { ASSET_MAP, ASSETS } from '../data/assets';
 
 interface Props {
@@ -26,7 +26,7 @@ export function PositionsList({ positions, orders, history, prices, account, onC
   const [modalTp, setModalTp] = useState('');
   const totalUnrPnL = positions.reduce((sum, p) => {
     const cur = prices[p.symbol] ?? p.entryPriceUSD;
-    return sum + (cur - p.entryPriceUSD) * p.quantity;
+    return sum + (cur - p.entryPriceUSD) * p.quantity * getAssetUSDMultiplier(p.symbol);
   }, 0);
   const totalRealPnL = history.reduce((sum, h) => sum + h.realizedPnLUSD, 0);
   const winTrades = history.filter(h => h.realizedPnLUSD > 0).length;
@@ -82,9 +82,11 @@ export function PositionsList({ positions, orders, history, prices, account, onC
         </div>
       )}
       {positions.map(pos => {
+        const hasLive = prices[pos.symbol] != null;
         const curPrice = prices[pos.symbol] ?? pos.entryPriceUSD;
-        const pnlUSD = (curPrice - pos.entryPriceUSD) * pos.quantity;
-        const pnlPct = ((curPrice - pos.entryPriceUSD) / pos.entryPriceUSD) * 100;
+        const mult = getAssetUSDMultiplier(pos.symbol);
+        const pnlUSD = (curPrice - pos.entryPriceUSD) * pos.quantity * mult;
+        const pnlPct = pos.entryPriceUSD > 0 ? ((curPrice - pos.entryPriceUSD) / pos.entryPriceUSD) * 100 : 0;
         const isUp = pnlUSD >= 0;
         const asset = ASSET_MAP[pos.symbol];
 
@@ -138,7 +140,7 @@ export function PositionsList({ positions, orders, history, prices, account, onC
             <div className="row between" style={{ alignItems: 'center' }}>
               <div className="col gap-1">
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-secondary)' }}>
-                  Current: {formatAssetPrice(curPrice, pos.symbol)}
+                  Current: {formatAssetPrice(curPrice, pos.symbol)} {!hasLive && <span style={{ fontSize: 9, opacity: 0.6 }}>(syncing)</span>}
                 </span>
                 {(pos.stopLoss || pos.takeProfit) && (
                   <div className="row gap-1" style={{ fontSize: 9 }}>

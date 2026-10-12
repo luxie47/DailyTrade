@@ -4,7 +4,7 @@ import type { Asset, Candle } from '../types/market';
 import type { Account } from '../types/account';
 import type { Position, Order } from '../types/trade';
 import { formatCurrency, formatPct } from '../services/storage';
-import { formatAssetPrice } from '../utils/formatPrice';
+import { formatAssetPrice, getAssetUSDMultiplier } from '../utils/formatPrice';
 
 interface Props {
   asset: Asset;
@@ -99,7 +99,8 @@ export function AssetTradePanel({
   const handleExecuteQuickBuy = () => {
     const usd = parseFloat(quickAmountUSD);
     if (!usd || usd <= 0 || !currentPrice || currentPrice <= 0) return;
-    const qty = usd / currentPrice;
+    const priceUSD = currentPrice * getAssetUSDMultiplier(asset.symbol);
+    const qty = usd / priceUSD;
     onMarketBuy(qty);
   };
 
@@ -392,7 +393,7 @@ export function AssetTradePanel({
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)' }}>
-              <span>Est. Qty: {currentPrice > 0 ? ((parseFloat(quickAmountUSD) || 0) / currentPrice).toFixed(4) : '0'}</span>
+              <span>Est. Qty: {currentPrice > 0 ? ((parseFloat(quickAmountUSD) || 0) / (currentPrice * getAssetUSDMultiplier(asset.symbol))).toFixed(4) : '0'}</span>
               <button
                 type="button"
                 onClick={onOpenFullTradeModal}

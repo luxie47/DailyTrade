@@ -4,6 +4,13 @@ export interface CurrencyFormat {
   decimals: number;
 }
 
+export function getAssetUSDMultiplier(symbol: string): number {
+  if (symbol.endsWith('.NS')) {
+    return 1 / 84;
+  }
+  return 1;
+}
+
 export function getAssetCurrencyFormat(symbol: string): CurrencyFormat {
   if (symbol.endsWith('.NS')) {
     return { prefix: '₹', suffix: '', decimals: 2 };

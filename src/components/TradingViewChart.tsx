@@ -52,8 +52,19 @@ export function TradingViewChart({
         horzLines: { color: 'rgba(255,255,255,0.04)' },
       },
       crosshair: { mode: CrosshairMode.Normal },
-      rightPriceScale: { borderColor: 'rgba(255,255,255,0.08)', textColor: '#52525b' },
-      timeScale: { borderColor: 'rgba(255,255,255,0.08)', timeVisible: true, secondsVisible: false },
+      rightPriceScale: {
+        borderColor: 'rgba(255,255,255,0.08)',
+        textColor: '#52525b',
+        scaleMargins: { top: 0.1, bottom: 0.15 },
+      },
+      timeScale: {
+        borderColor: 'rgba(255,255,255,0.08)',
+        timeVisible: true,
+        secondsVisible: false,
+        barSpacing: 7,
+        minBarSpacing: 3,
+        rightOffset: 5,
+      },
       width: containerRef.current.clientWidth || 360,
       height: 300,
     });
@@ -130,7 +141,12 @@ export function TradingViewChart({
     candleRef.current?.setData(cdData);
     areaRef.current?.setData(aData);
     volRef.current?.setData(vData);
-    chartRef.current?.timeScale().fitContent();
+    if (candles.length > 60) {
+      chartRef.current?.timeScale().fitContent();
+    } else {
+      chartRef.current?.timeScale().applyOptions({ barSpacing: 7, rightOffset: 5 });
+      chartRef.current?.timeScale().scrollToRealTime();
+    }
   }, [candles]);
 
   // ── Tick live price onto active candle ───────────────────────────────────
@@ -195,7 +211,7 @@ export function TradingViewChart({
   }, [chartType]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', background: '#000', borderBottom: '1px solid var(--border-dim)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', background: '#000', borderBottom: '1px solid var(--border-dim)', flexShrink: 0 }}>
       {/* ── Top bar: back + asset name + timeframes + chart type ────── */}
       <div style={{ display: 'flex', alignItems: 'center', padding: '8px 10px', borderBottom: '1px solid var(--border-dim)', gap: 8 }}>
         {/* Back button */}
@@ -267,7 +283,7 @@ export function TradingViewChart({
       </div>
 
       {/* ── Canvas ───────────────────────────────────────────────── */}
-      <div ref={containerRef} style={{ width: '100%' }} />
+      <div ref={containerRef} style={{ width: '100%', height: 300 }} />
     </div>
   );
 }

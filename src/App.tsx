@@ -351,7 +351,7 @@ export default function App() {
       <main className="app-content">
         {/* TRADE TAB */}
         {tab === 'trade' && (
-          <div className="col" style={{ height: '100%' }}>
+          <div className="col" style={{ height: '100%', overflow: 'hidden' }}>
             <TradingViewChart
               symbol={selectedAsset.symbol.replace('.NS','').replace('USDT','')}
               name={selectedAsset.name}
@@ -366,7 +366,7 @@ export default function App() {
             />
 
             {/* Asset info + Details + Trade button */}
-            <div style={{ padding: '14px 16px', borderTop: '1px solid var(--border-dim)', background: 'var(--bg-card)' }}>
+            <div style={{ padding: '14px 16px', borderTop: '1px solid var(--border-dim)', background: 'var(--bg-card)', flexShrink: 0 }}>
               <div className="row between" style={{ alignItems: 'center' }}>
                 <div className="col" style={{ gap: 3 }}>
                   {/* Asset class chip + name */}
@@ -443,19 +443,21 @@ export default function App() {
             </div>
 
             {/* Segmented Trade Panel: Order Book / 24H Stats / 1-Tap Trade */}
-            <AssetTradePanel
-              asset={selectedAsset}
-              currentPrice={curPrice}
-              candles={candles}
-              account={engine.activeAccount}
-              position={engine.positions.find(p => p.symbol === selectedAsset.symbol)}
-              orders={engine.orders.filter(o => o.symbol === selectedAsset.symbol)}
-              onMarketBuy={(qty) => engine.marketBuy(selectedAsset.symbol, qty, curPrice)}
-              onMarketSell={(qty) => engine.marketBuy(selectedAsset.symbol, qty, curPrice)}
-              onClosePosition={engine.closePosition}
-              onOpenFullTradeModal={() => setShowTradeModal(true)}
-              onOpenStatsModal={() => setDetailAsset(selectedAsset)}
-            />
+            <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              <AssetTradePanel
+                asset={selectedAsset}
+                currentPrice={curPrice}
+                candles={candles}
+                account={engine.activeAccount}
+                position={engine.positions.find(p => p.symbol === selectedAsset.symbol)}
+                orders={engine.orders.filter(o => o.symbol === selectedAsset.symbol)}
+                onMarketBuy={(qty) => engine.marketBuy(selectedAsset.symbol, qty, curPrice)}
+                onMarketSell={(qty) => engine.marketSell(selectedAsset.symbol, qty, curPrice)}
+                onClosePosition={engine.closePosition}
+                onOpenFullTradeModal={() => setShowTradeModal(true)}
+                onOpenStatsModal={() => setDetailAsset(selectedAsset)}
+              />
+            </div>
           </div>
         )}
 
@@ -526,6 +528,7 @@ export default function App() {
           account={engine.activeAccount}
           positionQty={engine.positions.find(p => p.symbol === selectedAsset.symbol)?.quantity}
           onMarketBuy={(qty, sl, tp) => engine.marketBuy(selectedAsset.symbol, qty, curPrice, sl, tp)}
+          onMarketSell={(qty) => engine.marketSell(selectedAsset.symbol, qty, curPrice)}
           onLimitOrder={(side, qty, price) => engine.placeLimitOrder(selectedAsset.symbol, side, qty, price)}
           onClose={() => setShowTradeModal(false)}
         />
