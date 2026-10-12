@@ -4,6 +4,8 @@ import { triggerAutoBackup } from '../services/backupService';
 import type { Currency } from '../types/account';
 import type { Position, ClosedTrade, Order } from '../types/trade';
 import { formatAssetPrice, getAssetUSDMultiplier } from '../utils/formatPrice';
+import { calculateUnrealizedPnL, calculateTotalEquity } from '../core/portfolio/calculations';
+import { validateMarketBuy, validateMarketSell, validateLimitOrder, shouldOrderFill } from '../core/trading/orders';
 
 export type NotificationCallback = (title: string, message: string, type: 'success' | 'error' | 'info') => void;
 
@@ -30,22 +32,13 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
 
   // ── Unrealised P&L given current prices map ──────────────────────────────
   const calcUnrealisedPnL = useCallback((prices: Record<string, number>): number => {
-    return positions.reduce((sum, pos) => {
-      const cur = prices[pos.symbol] ?? pos.entryPriceUSD;
-      const mult = getAssetUSDMultiplier(pos.symbol);
-      return sum + (cur - pos.entryPriceUSD) * pos.quantity * mult;
-    }, 0);
+    return calculateUnrealizedPnL(positions, prices);
   }, [positions]);
 
   // ── Account equity (cash + open positions value) ─────────────────────────
   const calcEquity = useCallback((prices: Record<string, number>): number => {
-    const positionValue = positions.reduce((sum, pos) => {
-      const cur = prices[pos.symbol] ?? pos.entryPriceUSD;
-      const mult = getAssetUSDMultiplier(pos.symbol);
-      return sum + cur * pos.quantity * mult;
-    }, 0);
-    return activeAccount.cashUSD + positionValue;
-  }, [positions, activeAccount]);
+    return calculateTotalEquity(activeAccount.cashUSD, positions, prices);
+  }, [positions, activeAccount.cashUSD]);
 
   // ─── Record equity snapshot (called periodically) ────────────────────────
   const recordEquity = useCallback((prices: Record<string, number>) => {
@@ -71,10 +64,9 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
     stopLoss?: number,
     takeProfit?: number
   ): string | null => {
-    const mult = getAssetUSDMultiplier(symbol);
-    const cost = priceUSD * quantity * mult;
-    if (cost > activeAccount.cashUSD) return 'Insufficient cash';
-    if (quantity <= 0) return 'Invalid quantity';
+    const validation = validateMarketBuy(activeAccount.cashUSD, symbol, quantity, priceUSD);
+    if (!validation.valid) return validation.error ?? 'Invalid order';
+    const cost = validation.costUSD!;
 
     setState(prev => {
       const acc = prev.accounts.find(a => a.id === prev.activeAccountId)!;
@@ -163,9 +155,8 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
     priceUSD: number
   ): string | null => {
     const pos = positions.find(p => p.symbol === symbol);
-    if (!pos) return 'No open position to sell';
-    if (quantity <= 0) return 'Invalid quantity';
-    if (quantity > pos.quantity) return `Max sellable: ${pos.quantity}`;
+    const validation = validateMarketSell(pos, quantity);
+    if (!validation.valid || !pos) return validation.error ?? 'Invalid order';
 
     const mult = getAssetUSDMultiplier(symbol);
     const proceeds = priceUSD * quantity * mult;
@@ -265,10 +256,8 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
   const placeLimitOrder = useCallback((
     symbol: string, side: 'buy' | 'sell', quantity: number, limitPrice: number
   ): string | null => {
-    if (side === 'buy') {
-      const cost = limitPrice * quantity;
-      if (cost > activeAccount.cashUSD) return 'Insufficient cash';
-    }
+    const validation = validateLimitOrder(activeAccount.cashUSD, side, quantity, limitPrice, symbol);
+    if (!validation.valid) return validation.error ?? 'Invalid order';
     setState(prev => ({
       ...prev,
       orders: [...prev.orders, {
@@ -299,17 +288,7 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
         const price = prices[order.symbol];
         if (!price || price <= 0) continue;
 
-        let shouldFill = false;
-        if (order.type === 'limit') {
-          shouldFill = order.side === 'buy'
-            ? price <= (order.limitPrice ?? Infinity)
-            : price >= (order.limitPrice ?? 0);
-        } else if (order.type === 'take_profit') {
-          shouldFill = price >= (order.limitPrice ?? 0);
-        } else if (order.type === 'stop_loss') {
-          shouldFill = price <= (order.limitPrice ?? Infinity);
-        }
-        if (!shouldFill) continue;
+        if (!shouldOrderFill(order, price)) continue;
 
         // Fill buy order
         if (order.side === 'buy') {

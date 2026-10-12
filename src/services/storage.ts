@@ -2,7 +2,9 @@ import type { Account, Currency, EquityPoint } from '../types/account';
 import type { Position, ClosedTrade, Order } from '../types/trade';
 import { CURRENCIES } from '../types/account';
 
-const KEY = 'dailytrade_v1';
+import { STORAGE_KEYS } from '../config/constants';
+
+const KEY = STORAGE_KEYS.APP_STATE;
 
 export interface AppState {
   accounts: Account[];

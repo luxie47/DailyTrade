@@ -28,8 +28,11 @@ import {
   subscribeLiveQuote, subscribeAllQuotes, startSyntheticTicks,
 } from './services/marketData';
 import type { Candle } from './types/market';
-import { Info, Download } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { formatAssetPrice } from './utils/formatPrice';
+import { syncAndroidWidget } from './native/widgetBridge';
+import { TIMERS, STORAGE_KEYS } from './config/constants';
+import { ErrorBoundary } from './shared/components/ErrorBoundary';
 
 const DEFAULT_ASSET = ASSETS[0]; // BTC
 
@@ -59,7 +62,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [prices, setPrices] = useState<Record<string, number>>(() => {
     try {
-      const cached = localStorage.getItem('dt_prices_cache');
+      const cached = localStorage.getItem(STORAGE_KEYS.PRICES_CACHE);
       return cached ? JSON.parse(cached) : {};
     } catch { return {}; }
   });
@@ -86,7 +89,7 @@ export default function App() {
   // Favorites state persisted in localStorage
   const [favorites, setFavorites] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem('dailytrade_favorites');
+      const saved = localStorage.getItem(STORAGE_KEYS.FAVORITES);
       return saved ? JSON.parse(saved) : ['BTCUSDT', 'AAPL', 'RELIANCE.NS', 'GC=F'];
     } catch {
       return ['BTCUSDT', 'AAPL', 'RELIANCE.NS', 'GC=F'];
@@ -97,7 +100,7 @@ export default function App() {
     setFavorites(prev => {
       const next = prev.includes(symbol) ? prev.filter(s => s !== symbol) : [...prev, symbol];
       try {
-        localStorage.setItem('dailytrade_favorites', JSON.stringify(next));
+        localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(next));
       } catch {
         // ignore
       }
@@ -130,7 +133,7 @@ export default function App() {
   const handlePricesUpdate = useCallback((update: Record<string, number>) => {
     setPrices(prev => {
       const next = { ...prev, ...update };
-      try { localStorage.setItem('dt_prices_cache', JSON.stringify(next)); } catch {}
+      try { localStorage.setItem(STORAGE_KEYS.PRICES_CACHE, JSON.stringify(next)); } catch {}
       checkAlerts(next);
       engine.checkLimitOrders(next);
       return next;
@@ -227,7 +230,7 @@ export default function App() {
   useEffect(() => {
     equityTimerRef.current = setInterval(() => {
       engine.recordEquity(prices);
-    }, 30_000);
+    }, TIMERS.EQUITY_SNAPSHOT_MS);
     return () => clearInterval(equityTimerRef.current!);
   }, [prices, engine.recordEquity]);
 
@@ -257,41 +260,14 @@ export default function App() {
 
   // Sync equity, PnL & ticker to Android Home Screen Widgets (when running on Android)
   useEffect(() => {
-    try {
-      const cap = (window as unknown as {
-        Capacitor?: {
-          isNativePlatform?: () => boolean;
-          Plugins?: {
-            WidgetBridge?: {
-              updateWidget: (data: {
-                equity: string;
-                pnl: string;
-                symbol?: string;
-                price?: string;
-                change?: string;
-                count?: string;
-              }) => void;
-            };
-          };
-        };
-      }).Capacitor;
-      if (!cap?.isNativePlatform?.()) return;
-      const plugin = cap.Plugins?.WidgetBridge;
-      if (!plugin) return;
-      const startEquity = engine.activeAccount.startingCashUSD;
-      const totalPnl = totalEquityUSD - startEquity;
-      const curPriceVal = livePrice ?? prices[selectedAsset.symbol] ?? 0;
-      plugin.updateWidget({
-        equity: formatCurrency(totalEquityUSD, engine.activeAccount.currency),
-        pnl: `${totalPnl >= 0 ? '+' : ''}${formatCurrency(totalPnl, engine.activeAccount.currency, true)} all time`,
-        symbol: selectedAsset.symbol.replace('USDT', '').replace('.NS', ''),
-        price: formatAssetPrice(curPriceVal, selectedAsset.symbol),
-        change: totalPnl >= 0 ? '+PROFIT' : '-LOSS',
-        count: `${engine.positions.length} pos`,
-      });
-    } catch {
-      // ignore
-    }
+    syncAndroidWidget({
+      totalEquityUSD,
+      currency: engine.activeAccount.currency,
+      startingCashUSD: engine.activeAccount.startingCashUSD,
+      selectedSymbol: selectedAsset.symbol,
+      currentPrice: livePrice ?? prices[selectedAsset.symbol] ?? 0,
+      positionCount: engine.positions.length,
+    });
   }, [totalEquityUSD, engine.activeAccount.currency, engine.activeAccount.startingCashUSD, engine.positions.length, selectedAsset.symbol, livePrice, prices]);
   const unrPnLUSD = engine.calcUnrealisedPnL(prices);
   const curPrice = livePrice ?? prices[selectedAsset.symbol] ?? 0;
@@ -348,7 +324,8 @@ export default function App() {
       />
 
       {/* ── Main Content ────────────────────────────────────────── */}
-      <main className="app-content">
+      <ErrorBoundary fallbackTitle="Trading Dashboard Error">
+        <main className="app-content">
         {/* TRADE TAB */}
         {tab === 'trade' && (
           <div className="col" style={{ height: '100%', overflow: 'hidden' }}>
@@ -504,7 +481,8 @@ export default function App() {
             />
           </div>
         )}
-      </main>
+        </main>
+      </ErrorBoundary>
 
       {/* ── Bottom Navigation ───────────────────────────────────── */}
       <BottomNav

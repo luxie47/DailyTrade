@@ -2,6 +2,30 @@
 
 All notable changes to DailyTrade documented in this file.
 
+## [1.2.7] - 2026-10-12
+
+### Changed
+- **Architectural Stabilization & Layered Refactor**: Refactored the core application codebase into a clean, modular architecture separating UI presentation, domain mathematics, and network data layers.
+- **Pure Domain Engine (`src/core/`)**: Extracted all PnL mathematics, equity calculations, order validation checks, and stop-loss/take-profit triggers into framework-agnostic, deterministic domain functions.
+- **Modular Market Data Adapters (`src/api/`)**: Decoupled Binance WebSocket, Yahoo Finance multi-tier REST fetcher, and organic Geometric Brownian Motion (GBM) micro-tick engines into isolated adapters with auto-reconnection and fallback handling.
+- **Native Android Widget Decoupling (`src/native/`)**: Isolated Android Home Screen Widget synchronization (`syncAndroidWidget`) into a typed native bridge module.
+- **Component Decomposition**: Decomposed the monolithic 625-line AccountModal into dedicated single-responsibility sub-views (`AboutView`, `AccountCreateView`, `AccountListView`).
+- **Resilience & Crash Prevention**: Integrated a top-level `ErrorBoundary` component to isolate rendering failures and prevent white-screen crashes.
+- **Centralized Environment & Configurations**: Extracted hardcoded endpoints, storage keys, and interval timers into type-safe configuration modules (`src/config/constants.ts` and `src/config/env.ts`).
+
+### Added
+- **Developer Handbook**: Added `guide.md` covering system philosophy, asset onboarding, widget development, and testing protocols.
+- **Architecture Specification**: Added `ARCHITECTURE.md` documenting data flows and layer responsibilities.
+
+---
+
+## [1.2.6] - 2026-10-12
+
+### Fixed
+- **Quick-Trade SELL Handler Decoupling**: Decoupled quick-trade sell handlers and resolved order book overflow issues during high-frequency volatility.
+
+---
+
 ## [1.2.5] - 2026-10-12
 
 ### Fixed
