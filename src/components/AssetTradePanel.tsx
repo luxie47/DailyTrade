@@ -1,10 +1,17 @@
 import { useState, useMemo } from 'react';
-import { TrendingUp, TrendingDown, Zap, BarChart2, DollarSign, Layers } from 'lucide-react';
+import { Zap, BarChart2, Layers } from 'lucide-react';
 import type { Asset, Candle } from '../types/market';
 import type { Account } from '../types/account';
 import type { Position, Order } from '../types/trade';
 import { formatCurrency, formatPct } from '../services/storage';
 import { formatAssetPrice, getAssetUSDMultiplier } from '../utils/formatPrice';
+
+/** Explicit discriminant so Buy and Sell can NEVER be accidentally swapped at call sites. */
+const TRADE_ACTION = {
+  BUY:  'buy',
+  SELL: 'sell',
+} as const;
+type TradeAction = typeof TRADE_ACTION[keyof typeof TRADE_ACTION];
 
 interface Props {
   asset: Asset;
@@ -97,26 +104,39 @@ export function AssetTradePanel({
     setQuickAmountUSD(val);
   };
 
-  const handleExecuteQuickBuy = () => {
+  /** Execute a quick market trade. Side is explicit to prevent swap bugs. */
+  const executeQuickTrade = (action: TradeAction) => {
     const usd = parseFloat(quickAmountUSD);
     if (!usd || usd <= 0 || !currentPrice || currentPrice <= 0) return;
     const priceUSD = currentPrice * getAssetUSDMultiplier(asset.symbol);
-    const qty = usd / priceUSD;
-    onMarketBuy(qty);
-  };
 
-  const handleExecuteQuickSell = () => {
-    if (!position || position.quantity <= 0) return;
-    const usd = parseFloat(quickAmountUSD);
-    if (!usd || usd <= 0 || !currentPrice || currentPrice <= 0) return;
-    const priceUSD = currentPrice * getAssetUSDMultiplier(asset.symbol);
-    // Cap sell qty to available position size
-    const qty = Math.min(usd / priceUSD, position.quantity);
-    onMarketSell(qty);
+    if (action === TRADE_ACTION.BUY) {
+      const qty = usd / priceUSD;
+      onMarketBuy(qty);
+      return;
+    }
+
+    // SELL — never reaches onMarketBuy
+    if (action === TRADE_ACTION.SELL) {
+      if (!position || position.quantity <= 0) return;
+      const qty = Math.min(usd / priceUSD, position.quantity);
+      onMarketSell(qty);
+      return;
+    }
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-card)', borderTop: '1px solid var(--border-dim)', minHeight: 220 }}>
+    // flex: 1 + minHeight: 0 lets this panel shrink properly inside the parent flex column
+    // overflow: hidden on root prevents Order Book content from escaping the container
+    <div style={{
+      flex: 1,
+      minHeight: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      background: 'var(--bg-card)',
+      borderTop: '1px solid var(--border-dim)',
+      overflow: 'hidden',
+    }}>
       {/* ── Segmented Tab Header ── */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--border-dim)', background: 'var(--bg-subtle)' }}>
         {[
@@ -158,7 +178,8 @@ export function AssetTradePanel({
       </div>
 
       {/* ── Tab Content ── */}
-      <div style={{ flex: 1, padding: '10px 14px', overflowY: 'auto' }}>
+      {/* flex: 1 + minHeight: 0 + overflowY: auto = hard scroll boundary, Order Book never overflows */}
+      <div style={{ flex: 1, minHeight: 0, padding: '10px 14px', overflowY: 'auto' }}>
         {/* TAB 1: ORDER BOOK */}
         {activeTab === 'orderbook' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -394,17 +415,21 @@ export function AssetTradePanel({
                 />
                 <span style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)' }}>$</span>
               </div>
+              {/* BUY — explicitly passes TRADE_ACTION.BUY so handler is unambiguous */}
               <button
                 className="btn btn-bull"
                 style={{ fontSize: 11, padding: '8px 12px', fontWeight: 700, flexShrink: 0 }}
-                onClick={handleExecuteQuickBuy}
+                data-action={TRADE_ACTION.BUY}
+                onClick={() => executeQuickTrade(TRADE_ACTION.BUY)}
               >
                 BUY
               </button>
+              {/* SELL — explicitly passes TRADE_ACTION.SELL; disabled when no position */}
               <button
                 className="btn btn-bear"
                 style={{ fontSize: 11, padding: '8px 12px', fontWeight: 700, flexShrink: 0, opacity: position ? 1 : 0.4, cursor: position ? 'pointer' : 'not-allowed' }}
-                onClick={handleExecuteQuickSell}
+                data-action={TRADE_ACTION.SELL}
+                onClick={() => executeQuickTrade(TRADE_ACTION.SELL)}
                 disabled={!position}
                 title={!position ? 'No open position to sell' : `Sell up to ${position.quantity.toFixed(4)} units`}
               >

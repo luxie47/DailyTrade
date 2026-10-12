@@ -309,7 +309,7 @@ body {
 }
 .tab-bar::-webkit-scrollbar { display: none; }
 
-.tab-btn {
+.tab-btn, .tab-item {
   background: none; border: none;
   border-bottom: 2px solid transparent;
   color: var(--text-muted);
@@ -320,9 +320,10 @@ body {
   cursor: pointer; white-space: nowrap;
   transition: color 0.12s, border-color 0.12s;
   user-select: none;
+  text-align: center;
 }
-.tab-btn:hover  { color: var(--text-secondary); }
-.tab-btn.active { color: var(--text-primary); border-bottom-color: #fff; }
+.tab-btn:hover, .tab-item:hover   { color: var(--text-secondary); }
+.tab-btn.active, .tab-item.active { color: var(--text-primary); border-bottom-color: #fff; }
 
 /* ── Progress bar ── */
 .progress-bar   { height: 2px; background: var(--bg-subtle); }
