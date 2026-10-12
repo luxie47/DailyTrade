@@ -10,7 +10,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-8.x-646cff.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Capacitor](https://img.shields.io/badge/Capacitor-Android-119eff.svg?logo=capacitor&logoColor=white)](https://capacitorjs.com/)
-[![Android APK](https://img.shields.io/badge/APK-v1.2.3-3DDC84.svg?logo=android&logoColor=white)](https://github.com/luxie47/DailyTrade/releases/download/v1.2.3/DailyTrade.apk)
+[![Android APK](https://img.shields.io/badge/APK-v1.2.4-3DDC84.svg?logo=android&logoColor=white)](https://github.com/luxie47/DailyTrade/releases/download/v1.2.4/DailyTrade.apk)
 [![TradingView Charts](https://img.shields.io/badge/Powered%20By-Lightweight%20Charts-00e676.svg)](https://tradingview.github.io/lightweight-charts/)
 [![Get it on Orion Store](https://img.shields.io/badge/Get%20it%20on-Orion%20Store-7c3aed.svg)](https://rookieenough.github.io/Orion-Data/redirect.html?id=dailytrade)
 [![Build APK](https://github.com/luxie47/DailyTrade/actions/workflows/build-apk.yml/badge.svg)](.github/workflows/build-apk.yml)
@@ -20,7 +20,7 @@
 **A high-performance, minimalist paper trading simulator with real live market feeds and zero real money involved.**  
 *Practice trading stocks, crypto, crude oil, forex, index mutual funds, and fixed deposits with zero risk.*
 
-[Download v1.2.3 APK](https://github.com/luxie47/DailyTrade/releases/download/v1.2.3/DailyTrade.apk) • [Get it on Orion Store](https://rookieenough.github.io/Orion-Data/redirect.html?id=dailytrade) • [Featured Project: DailyFlow](https://dailyflow-luxie.vercel.app) • [Star on GitHub](https://github.com/luxie47/DailyTrade) • [Features](#-features) • [Data Flow](#-architecture--data-flow) • [Roadmap](#-secure-roadmap) • [Disclaimer](#-legal--financial-disclaimer)
+[Download v1.2.4 APK](https://github.com/luxie47/DailyTrade/releases/download/v1.2.4/DailyTrade.apk) • [Get it on Orion Store](https://rookieenough.github.io/Orion-Data/redirect.html?id=dailytrade) • [Featured Project: DailyFlow](https://dailyflow-luxie.vercel.app) • [Star on GitHub](https://github.com/luxie47/DailyTrade) • [Features](#-features) • [Data Flow](#-architecture--data-flow) • [Roadmap](#-secure-roadmap) • [Disclaimer](#-legal--financial-disclaimer)
 
 <br/>
 

@@ -131,7 +131,7 @@ async function fetchYahooJson(path: string, signal?: AbortSignal): Promise<any> 
 
 // ─── Single Yahoo Quote ───────────────────────────────────────────────────────
 export async function fetchYahooQuote(symbol: string): Promise<Quote | null> {
-  const json = await fetchYahooJson(`/v8/finance/chart/${symbol}?interval=1d&range=5d`);
+  const json = await fetchYahooJson(`/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d`);
   if (!json) return null;
   const r = json.chart.result[0];
   const meta = r?.meta;
@@ -186,7 +186,7 @@ export async function fetchCandles(symbol: string, tf: Timeframe, signal?: Abort
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return cached.data;
   try {
     const { interval, range } = TF_PARAMS[tf];
-    const json = await fetchYahooJson(`/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`, signal);
+    const json = await fetchYahooJson(`/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`, signal);
     if (!json) return generateFallbackCandles(symbol, tf);
 
     const result = json?.chart?.result?.[0];
@@ -267,6 +267,9 @@ function getBaselinePrice(symbol: string): number {
   if (symbol.includes('QQQ')) return 510;
   if (symbol.includes('BIL')) return 91.6;
   if (symbol.includes('^TNX')) return 4.45;
+  if (symbol.includes('^NSEI')) return 25000;
+  if (symbol.includes('^BSESN')) return 82000;
+  if (symbol.includes('^NSEBANK')) return 51000;
   return 100;
 }
 

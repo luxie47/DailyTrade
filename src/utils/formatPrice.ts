@@ -4,15 +4,21 @@ export interface CurrencyFormat {
   decimals: number;
 }
 
+const isIndianAsset = (symbol: string): boolean =>
+  symbol.endsWith('.NS') ||
+  symbol.endsWith('.BO') ||
+  symbol.startsWith('^NSE') ||
+  symbol.startsWith('^BSE');
+
 export function getAssetUSDMultiplier(symbol: string): number {
-  if (symbol.endsWith('.NS')) {
+  if (isIndianAsset(symbol)) {
     return 1 / 84;
   }
   return 1;
 }
 
 export function getAssetCurrencyFormat(symbol: string): CurrencyFormat {
-  if (symbol.endsWith('.NS')) {
+  if (isIndianAsset(symbol)) {
     return { prefix: '₹', suffix: '', decimals: 2 };
   }
   if (symbol.includes('^TNX') || symbol.includes('^TYX') || symbol.includes('^IRX')) {

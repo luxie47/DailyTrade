@@ -191,7 +191,10 @@ export const ASSETS: Asset[] = [
   { symbol:'BA',        name:'Boeing',            class:'stock',     quoteSymbol:'BA',            iconLetters:'BA',   iconColor:'#0033a0' },
   { symbol:'CAT',       name:'Caterpillar',       class:'stock',     quoteSymbol:'CAT',           iconLetters:'CAT',  iconColor:'#ffcd00' },
 
-  // ── 7. Indian Bluechips & High-Growth Equities (NSE) ───────────────────────
+  // ── 7. Indian Benchmark Indices & Bluechips (NSE / BSE) ─────────────────────
+  { symbol:'^NSEI',         name:'Nifty 50 Index',       class:'fund',      quoteSymbol:'^NSEI',         iconLetters:'NIFTY',iconColor:'#f97316' },
+  { symbol:'^BSESN',        name:'BSE Sensex Index',     class:'fund',      quoteSymbol:'^BSESN',        iconLetters:'SNSX', iconColor:'#0284c7' },
+  { symbol:'^NSEBANK',      name:'Nifty Bank Index',     class:'fund',      quoteSymbol:'^NSEBANK',      iconLetters:'BANK', iconColor:'#16a34a' },
   { symbol:'RELIANCE.NS',   name:'Reliance Industries', class:'stock', quoteSymbol:'RELIANCE.NS',   iconLetters:'RIL',  iconColor:'#004b93' },
   { symbol:'TCS.NS',        name:'Tata Consultancy',    class:'stock', quoteSymbol:'TCS.NS',        iconLetters:'TCS',  iconColor:'#0f4c81' },
   { symbol:'HDFCBANK.NS',   name:'HDFC Bank',           class:'stock', quoteSymbol:'HDFCBANK.NS',   iconLetters:'HDFC', iconColor:'#004c8f' },
@@ -236,6 +239,22 @@ export const ASSETS: Asset[] = [
   { symbol:'TRENT.NS',      name:'Trent (Tata Westside/Zudio)',class:'stock',quoteSymbol:'TRENT.NS',iconLetters:'TRNT',iconColor:'#6d28d9' },
   { symbol:'BEL.NS',        name:'Bharat Electronics',  class:'stock', quoteSymbol:'BEL.NS',        iconLetters:'BEL',  iconColor:'#0369a1' },
   { symbol:'HAL.NS',        name:'Hindustan Aeronautics',class:'stock',quoteSymbol:'HAL.NS',        iconLetters:'HAL',  iconColor:'#15803d' },
+  { symbol:'TATAPOWER.NS',  name:'Tata Power',           class:'stock', quoteSymbol:'TATAPOWER.NS',  iconLetters:'TPWR', iconColor:'#007cc3' },
+  { symbol:'JSWSTEEL.NS',   name:'JSW Steel',            class:'stock', quoteSymbol:'JSWSTEEL.NS',   iconLetters:'JSW',  iconColor:'#1e3a8a' },
+  { symbol:'HINDALCO.NS',   name:'Hindalco Industries',  class:'stock', quoteSymbol:'HINDALCO.NS',   iconLetters:'HIND', iconColor:'#d97706' },
+  { symbol:'M&M.NS',        name:'Mahindra & Mahindra',  class:'stock', quoteSymbol:'M&M.NS',        iconLetters:'M&M',  iconColor:'#dc2626' },
+  { symbol:'BAJAJ-AUTO.NS', name:'Bajaj Auto',           class:'stock', quoteSymbol:'BAJAJ-AUTO.NS', iconLetters:'BAUTO',iconColor:'#003875' },
+  { symbol:'EICHERMOT.NS',  name:'Eicher Motors',        class:'stock', quoteSymbol:'EICHERMOT.NS',  iconLetters:'RE',   iconColor:'#7f1d1d' },
+  { symbol:'VEDL.NS',       name:'Vedanta',              class:'stock', quoteSymbol:'VEDL.NS',       iconLetters:'VEDL', iconColor:'#334155' },
+  { symbol:'DLF.NS',        name:'DLF Real Estate',      class:'stock', quoteSymbol:'DLF.NS',        iconLetters:'DLF',  iconColor:'#0284c7' },
+  { symbol:'IRCTC.NS',      name:'IRCTC Indian Railways',class:'stock', quoteSymbol:'IRCTC.NS',      iconLetters:'IRCTC',iconColor:'#b91c1c' },
+  { symbol:'IRFC.NS',       name:'Indian Railway Finance',class:'stock',quoteSymbol:'IRFC.NS',       iconLetters:'IRFC', iconColor:'#15803d' },
+  { symbol:'BSE.NS',        name:'BSE Limited',          class:'stock', quoteSymbol:'BSE.NS',        iconLetters:'BSE',  iconColor:'#1e40af' },
+  { symbol:'CDSL.NS',       name:'CDSL Depository',      class:'stock', quoteSymbol:'CDSL.NS',       iconLetters:'CDSL', iconColor:'#0d9488' },
+  { symbol:'DMART.NS',      name:'Avenue Supermarts (DMart)',class:'stock', quoteSymbol:'DMART.NS',  iconLetters:'DMART',iconColor:'#16a34a' },
+  { symbol:'VBL.NS',        name:'Varun Beverages',      class:'stock', quoteSymbol:'VBL.NS',        iconLetters:'VBL',  iconColor:'#2563eb' },
+  { symbol:'PIDILITIND.NS', name:'Pidilite (Fevicol)',   class:'stock', quoteSymbol:'PIDILITIND.NS', iconLetters:'PIDI', iconColor:'#ca8a04' },
+  { symbol:'SUZLON.NS',     name:'Suzlon Energy',        class:'stock', quoteSymbol:'SUZLON.NS',     iconLetters:'SUZL', iconColor:'#10b981' },
 ];
 
 export const ASSET_MAP: Record<string, Asset> = Object.fromEntries(

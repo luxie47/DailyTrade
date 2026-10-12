@@ -2,6 +2,24 @@
 
 All notable changes to DailyTrade documented in this file.
 
+## [1.2.4] - 2026-10-12
+
+### Added
+- **Indian Benchmark Indices Integration**: Integrated real-time tracking and paper trading for **Nifty 50 (`^NSEI`)**, **BSE Sensex (`^BSESN`)**, and **Nifty Bank (`^NSEBANK`)** benchmark indices with live candlestick charts, 24h metrics, and point quotes.
+- **Major Indian Bluechips & Retail Equities Expansion**: Expanded Indian asset coverage with 16 high-volume equities across key sectors:
+  - **Automotive**: Mahindra & Mahindra (`M&M`), Bajaj Auto (`BAJAJ-AUTO`), Eicher Motors / Royal Enfield (`EICHERMOT`).
+  - **Power & Green Energy**: Tata Power (`TATAPOWER`), Suzlon Energy (`SUZLON`).
+  - **Metals, Mining & Infra**: JSW Steel (`JSWSTEEL`), Hindalco Industries (`HINDALCO`), Vedanta (`VEDL`), DLF Real Estate (`DLF`).
+  - **Railways & PSU**: IRCTC Indian Railways (`IRCTC`), Indian Railway Finance Corp (`IRFC`).
+  - **Fintech & Exchanges**: BSE Limited (`BSE`), CDSL Depository (`CDSL`).
+  - **Consumer & Retail Giants**: Avenue Supermarts / DMart (`DMART`), Varun Beverages (`VBL`), Pidilite Industries / Fevicol (`PIDILITIND`).
+
+### Changed
+- **URL Encoding Hardening for Special Tickers**: Applied URI component encoding to Yahoo Finance query endpoints, ensuring symbols containing special characters (e.g. index carets `^`) resolve reliably across Android and browser runtimes.
+- **Unified Indian Asset Multiplier & Format**: Extended native `₹` point currency formatting and 1/84 USD portfolio equity translation to benchmark indices.
+
+---
+
 ## [1.2.3] - 2026-10-12
 
 ### Added
