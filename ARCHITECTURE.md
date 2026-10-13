@@ -60,10 +60,11 @@ src/
 ## 2. Core Domain Layer (`src/core/`)
 
 All critical trading rules and mathematical calculations live in pure, framework-agnostic TypeScript functions:
-- **`calculateUnrealizedPnL(positions, prices)`**: Computes open position profit/loss respecting currency multipliers (e.g. INR to USD).
-- **`calculateTotalEquity(cashUSD, positions, prices)`**: Combines cash balance and open market valuations.
-- **`validateMarketBuy(...)` / `validateMarketSell(...)` / `validateLimitOrder(...)`**: Pure input and cash balance guards.
-- **`shouldOrderFill(order, price)`**: Validates limit prices, stop losses, and take profit targets with OCO logic.
+- **`calculateUnrealizedPnL(positions, prices)`**: Computes open position profit/loss for both long (`current - entry`) and short (`entry - current`) positions respecting currency multipliers (e.g. INR to USD).
+- **`calculatePositionValue(position, currentPrice)`**: Calculates liquid position market value, isolating margin-locked equity for open shorts (`Math.max(0, margin + pnl)`).
+- **`calculateTotalEquity(cashUSD, positions, prices)`**: Combines cash balance and open market valuations across mixed long/short books.
+- **`validateMarketBuy(...)` / `validateMarketSell(...)` / `validateMarketShort(...)`**: Pure input, inventory, and cash margin guards.
+- **`shouldOrderFill(order, price)`**: Direction-aware trigger validation for limit orders, stop losses (protective Buy-to-Cover on shorts), and take profit targets with OCO cancellation logic.
 
 ---
 

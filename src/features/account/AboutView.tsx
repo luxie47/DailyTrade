@@ -40,7 +40,7 @@ export function AboutView({ onBack }: Props) {
             />
             <span className="mono font-bold" style={{ fontSize: 14, color: 'var(--text-primary)' }}>DailyTrade</span>
           </div>
-          <span className="badge badge-neutral" style={{ fontSize: 10 }}>v1.2.5</span>
+          <span className="badge badge-neutral" style={{ fontSize: 10 }}>v{APP_METADATA.VERSION}</span>
         </div>
         <p style={{ fontFamily: 'var(--font-ui)', fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.5 }}>
           We are <strong>open sourcing this app mentally and wholeheartedly for everyone</strong>. Built to provide a clean, uncompromising, 100% free paper trading platform with real live feeds and zero paywalls.

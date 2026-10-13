@@ -56,55 +56,6 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
     });
   }, [calcEquity, setState]);
 
-  // ── Market Buy ────────────────────────────────────────────────────────────
-  const marketBuy = useCallback((
-    symbol: string,
-    quantity: number,
-    priceUSD: number,
-    stopLoss?: number,
-    takeProfit?: number
-  ): string | null => {
-    const validation = validateMarketBuy(activeAccount.cashUSD, symbol, quantity, priceUSD);
-    if (!validation.valid) return validation.error ?? 'Invalid order';
-    const cost = validation.costUSD!;
-
-    setState(prev => {
-      const acc = prev.accounts.find(a => a.id === prev.activeAccountId)!;
-      const updatedAcc = { ...acc, cashUSD: acc.cashUSD - cost };
-      const posId = crypto.randomUUID();
-      const newPos: Position = {
-        id: posId,
-        accountId: prev.activeAccountId,
-        symbol,
-        quantity,
-        entryPriceUSD: priceUSD,
-        entryTime: Date.now(),
-        stopLoss,
-        takeProfit,
-      };
-      // Attach SL/TP as pending orders linked to positionId
-      const newOrders: Order[] = [];
-      if (stopLoss) newOrders.push({
-        id: crypto.randomUUID(), accountId: prev.activeAccountId,
-        symbol, side: 'sell', type: 'stop_loss', quantity,
-        limitPrice: stopLoss, positionId: posId, status: 'pending', createdAt: Date.now(),
-      });
-      if (takeProfit) newOrders.push({
-        id: crypto.randomUUID(), accountId: prev.activeAccountId,
-        symbol, side: 'sell', type: 'take_profit', quantity,
-        limitPrice: takeProfit, positionId: posId, status: 'pending', createdAt: Date.now(),
-      });
-      return {
-        ...prev,
-        accounts: prev.accounts.map(a => a.id === prev.activeAccountId ? updatedAcc : a),
-        positions: [...prev.positions, newPos],
-        orders: [...prev.orders, ...newOrders],
-      };
-    });
-    onNotify?.('Order Executed', `Bought ${quantity} ${symbol} @ ${formatAssetPrice(priceUSD, symbol)}`, 'success');
-    return null;
-  }, [activeAccount, setState, onNotify]);
-
   // ── Market Sell / Close Position ─────────────────────────────────────────
   const closePosition = useCallback((positionId: string, currentPriceUSD: number): void => {
     setState(prev => {
@@ -112,12 +63,17 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
       if (!pos) return prev;
 
       const mult = getAssetUSDMultiplier(pos.symbol);
-      const proceeds = currentPriceUSD * pos.quantity * mult;
-      const pnl = (currentPriceUSD - pos.entryPriceUSD) * pos.quantity * mult;
+      const isShort = pos.side === 'short';
+      const pnl = isShort
+        ? (pos.entryPriceUSD - currentPriceUSD) * pos.quantity * mult
+        : (currentPriceUSD - pos.entryPriceUSD) * pos.quantity * mult;
+      const marginCost = pos.entryPriceUSD * pos.quantity * mult;
+      const proceeds = isShort ? Math.max(0, marginCost + pnl) : currentPriceUSD * pos.quantity * mult;
       const trade: ClosedTrade = {
         id: crypto.randomUUID(),
         accountId: prev.activeAccountId,
         symbol: pos.symbol,
+        side: pos.side ?? 'long',
         quantity: pos.quantity,
         entryPriceUSD: pos.entryPriceUSD,
         exitPriceUSD: currentPriceUSD,
@@ -148,64 +104,211 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
     });
   }, [setState, onNotify]);
 
-  // ── Market Sell (by symbol — closes or reduces existing long position) ────────
+  // ── Market Buy (opens long OR covers existing short) ──────────────────────
+  const marketBuy = useCallback((
+    symbol: string,
+    quantity: number,
+    priceUSD: number,
+    stopLoss?: number,
+    takeProfit?: number
+  ): string | null => {
+    // If holding an open SHORT position in this symbol, buying acts as Buy-to-Cover (partial or full)
+    const existingShort = positions.find(p => p.symbol === symbol && p.side === 'short');
+    if (existingShort) {
+      const coverQty = Math.min(quantity, existingShort.quantity);
+      const mult = getAssetUSDMultiplier(symbol);
+      const pnl = (existingShort.entryPriceUSD - priceUSD) * coverQty * mult;
+      const marginCost = existingShort.entryPriceUSD * coverQty * mult;
+      const proceeds = Math.max(0, marginCost + pnl);
+      const isFullClose = coverQty >= existingShort.quantity;
+
+      setState(prev => {
+        const trade: ClosedTrade = {
+          id: crypto.randomUUID(),
+          accountId: prev.activeAccountId,
+          symbol: existingShort.symbol,
+          side: 'short',
+          quantity: coverQty,
+          entryPriceUSD: existingShort.entryPriceUSD,
+          exitPriceUSD: priceUSD,
+          realizedPnLUSD: pnl,
+          entryTime: existingShort.entryTime,
+          exitTime: Date.now(),
+        };
+        const isPosOrder = (o: Order) =>
+          o.positionId === existingShort.id ||
+          (o.symbol === existingShort.symbol && (o.type === 'stop_loss' || o.type === 'take_profit'));
+
+        return {
+          ...prev,
+          accounts: prev.accounts.map(a =>
+            a.id === prev.activeAccountId ? { ...a, cashUSD: a.cashUSD + proceeds } : a
+          ),
+          positions: isFullClose
+            ? prev.positions.filter(p => p.id !== existingShort.id)
+            : prev.positions.map(p => p.id === existingShort.id ? { ...p, quantity: p.quantity - coverQty } : p),
+          orders: isFullClose ? prev.orders.filter(o => !isPosOrder(o)) : prev.orders,
+          history: [trade, ...prev.history].slice(0, 500),
+        };
+      });
+
+      const acc = state.accounts.find(a => a.id === state.activeAccountId) ?? state.accounts[0];
+      onNotify?.(
+        pnl >= 0 ? 'Short Covered (Profit)' : 'Short Covered (Loss)',
+        `Covered ${coverQty} ${symbol} @ ${formatAssetPrice(priceUSD, symbol)} (${pnl >= 0 ? '+' : ''}${formatCurrency(pnl, acc.currency)})`,
+        pnl >= 0 ? 'success' : 'error'
+      );
+      return null;
+    }
+
+    const validation = validateMarketBuy(activeAccount.cashUSD, symbol, quantity, priceUSD);
+    if (!validation.valid) return validation.error ?? 'Invalid order';
+    const cost = validation.costUSD!;
+
+    setState(prev => {
+      const acc = prev.accounts.find(a => a.id === prev.activeAccountId)!;
+      const updatedAcc = { ...acc, cashUSD: acc.cashUSD - cost };
+      const posId = crypto.randomUUID();
+      const newPos: Position = {
+        id: posId,
+        accountId: prev.activeAccountId,
+        symbol,
+        side: 'long',
+        quantity,
+        entryPriceUSD: priceUSD,
+        entryTime: Date.now(),
+        stopLoss,
+        takeProfit,
+      };
+      // Attach SL/TP as pending orders linked to positionId
+      const newOrders: Order[] = [];
+      if (stopLoss) newOrders.push({
+        id: crypto.randomUUID(), accountId: prev.activeAccountId,
+        symbol, side: 'sell', type: 'stop_loss', quantity,
+        limitPrice: stopLoss, positionId: posId, status: 'pending', createdAt: Date.now(),
+      });
+      if (takeProfit) newOrders.push({
+        id: crypto.randomUUID(), accountId: prev.activeAccountId,
+        symbol, side: 'sell', type: 'take_profit', quantity,
+        limitPrice: takeProfit, positionId: posId, status: 'pending', createdAt: Date.now(),
+      });
+      return {
+        ...prev,
+        accounts: prev.accounts.map(a => a.id === prev.activeAccountId ? updatedAcc : a),
+        positions: [...prev.positions, newPos],
+        orders: [...prev.orders, ...newOrders],
+      };
+    });
+    onNotify?.('Order Executed', `Bought ${quantity} ${symbol} @ ${formatAssetPrice(priceUSD, symbol)}`, 'success');
+    return null;
+  }, [activeAccount, positions, closePosition, setState, onNotify]);
+
+  // ── Market Sell (by symbol — closes or reduces existing long position, or opens short) ──
   const marketSell = useCallback((
     symbol: string,
     quantity: number,
-    priceUSD: number
+    priceUSD: number,
+    stopLoss?: number,
+    takeProfit?: number
   ): string | null => {
-    const pos = positions.find(p => p.symbol === symbol);
-    const validation = validateMarketSell(pos, quantity);
-    if (!validation.valid || !pos) return validation.error ?? 'Invalid order';
+    const pos = positions.find(p => p.symbol === symbol && (p.side === 'long' || !p.side));
+    if (pos) {
+      const validation = validateMarketSell(pos, quantity);
+      if (!validation.valid) return validation.error ?? 'Invalid order';
 
-    const mult = getAssetUSDMultiplier(symbol);
-    const proceeds = priceUSD * quantity * mult;
-    const pnl = (priceUSD - pos.entryPriceUSD) * quantity * mult;
-    const isFullClose = quantity >= pos.quantity;
+      const mult = getAssetUSDMultiplier(symbol);
+      const proceeds = priceUSD * quantity * mult;
+      const pnl = (priceUSD - pos.entryPriceUSD) * quantity * mult;
+      const isFullClose = quantity >= pos.quantity;
 
-    setState(prev => {
-      const trade: ClosedTrade = {
-        id: crypto.randomUUID(),
-        accountId: prev.activeAccountId,
-        symbol: pos.symbol,
-        quantity,
-        entryPriceUSD: pos.entryPriceUSD,
-        exitPriceUSD: priceUSD,
-        realizedPnLUSD: pnl,
-        entryTime: pos.entryTime,
-        exitTime: Date.now(),
-      };
-      const isPosOrder = (o: Order) =>
-        o.positionId === pos.id ||
-        (o.symbol === pos.symbol && (o.type === 'stop_loss' || o.type === 'take_profit'));
+      setState(prev => {
+        const trade: ClosedTrade = {
+          id: crypto.randomUUID(),
+          accountId: prev.activeAccountId,
+          symbol: pos.symbol,
+          side: 'long',
+          quantity,
+          entryPriceUSD: pos.entryPriceUSD,
+          exitPriceUSD: priceUSD,
+          realizedPnLUSD: pnl,
+          entryTime: pos.entryTime,
+          exitTime: Date.now(),
+        };
+        const isPosOrder = (o: Order) =>
+          o.positionId === pos.id ||
+          (o.symbol === pos.symbol && (o.type === 'stop_loss' || o.type === 'take_profit'));
 
-      return {
-        ...prev,
-        accounts: prev.accounts.map(a =>
-          a.id === prev.activeAccountId ? { ...a, cashUSD: a.cashUSD + proceeds } : a
-        ),
-        positions: isFullClose
-          ? prev.positions.filter(p => p.id !== pos.id)
-          : prev.positions.map(p => p.id === pos.id ? { ...p, quantity: p.quantity - quantity } : p),
-        orders: isFullClose ? prev.orders.filter(o => !isPosOrder(o)) : prev.orders,
-        history: [trade, ...prev.history].slice(0, 500),
-      };
-    });
+        return {
+          ...prev,
+          accounts: prev.accounts.map(a =>
+            a.id === prev.activeAccountId ? { ...a, cashUSD: a.cashUSD + proceeds } : a
+          ),
+          positions: isFullClose
+            ? prev.positions.filter(p => p.id !== pos.id)
+            : prev.positions.map(p => p.id === pos.id ? { ...p, quantity: p.quantity - quantity } : p),
+          orders: isFullClose ? prev.orders.filter(o => !isPosOrder(o)) : prev.orders,
+          history: [trade, ...prev.history].slice(0, 500),
+        };
+      });
 
-    const acc = state.accounts.find(a => a.id === state.activeAccountId) ?? state.accounts[0];
-    onNotify?.(
-      pnl >= 0 ? 'Sell Executed (Profit)' : 'Sell Executed (Loss)',
-      `Sold ${quantity} ${symbol} @ ${formatAssetPrice(priceUSD, symbol)} (${pnl >= 0 ? '+' : ''}${formatCurrency(pnl, acc.currency)})`,
-      pnl >= 0 ? 'success' : 'error'
-    );
-    return null;
-  }, [positions, state.accounts, state.activeAccountId, setState, onNotify]);
+      const acc = state.accounts.find(a => a.id === state.activeAccountId) ?? state.accounts[0];
+      onNotify?.(
+        pnl >= 0 ? 'Sell Executed (Profit)' : 'Sell Executed (Loss)',
+        `Sold ${quantity} ${symbol} @ ${formatAssetPrice(priceUSD, symbol)} (${pnl >= 0 ? '+' : ''}${formatCurrency(pnl, acc.currency)})`,
+        pnl >= 0 ? 'success' : 'error'
+      );
+      return null;
+    } else {
+      // Direct short order (no position held)
+      const validation = validateMarketBuy(activeAccount.cashUSD, symbol, quantity, priceUSD);
+      if (!validation.valid) return validation.error ?? 'Invalid order';
+      const cost = validation.costUSD!;
+
+      setState(prev => {
+        const acc = prev.accounts.find(a => a.id === prev.activeAccountId)!;
+        const updatedAcc = { ...acc, cashUSD: acc.cashUSD - cost };
+        const posId = crypto.randomUUID();
+        const newPos: Position = {
+          id: posId,
+          accountId: prev.activeAccountId,
+          symbol,
+          side: 'short',
+          quantity,
+          entryPriceUSD: priceUSD,
+          entryTime: Date.now(),
+          stopLoss,
+          takeProfit,
+        };
+        const newOrders: Order[] = [];
+        if (stopLoss) newOrders.push({
+          id: crypto.randomUUID(), accountId: prev.activeAccountId,
+          symbol, side: 'buy', type: 'stop_loss', quantity,
+          limitPrice: stopLoss, positionId: posId, status: 'pending', createdAt: Date.now(),
+        });
+        if (takeProfit) newOrders.push({
+          id: crypto.randomUUID(), accountId: prev.activeAccountId,
+          symbol, side: 'buy', type: 'take_profit', quantity,
+          limitPrice: takeProfit, positionId: posId, status: 'pending', createdAt: Date.now(),
+        });
+        return {
+          ...prev,
+          accounts: prev.accounts.map(a => a.id === prev.activeAccountId ? updatedAcc : a),
+          positions: [...prev.positions, newPos],
+          orders: [...prev.orders, ...newOrders],
+        };
+      });
+      onNotify?.('Short Order Executed', `Short sold ${quantity} ${symbol} @ ${formatAssetPrice(priceUSD, symbol)}`, 'success');
+      return null;
+    }
+  }, [positions, activeAccount.cashUSD, state.accounts, state.activeAccountId, setState, onNotify]);
 
   // ── Set / Update Stop Loss & Take Profit on Existing Position ──────────────
   const updatePositionSLTP = useCallback((positionId: string, stopLoss?: number, takeProfit?: number) => {
     setState(prev => {
       const pos = prev.positions.find(p => p.id === positionId);
       if (!pos) return prev;
+
+      const exitSide: 'buy' | 'sell' = pos.side === 'short' ? 'buy' : 'sell';
 
       // Filter out existing SL/TP orders for this position
       const remainingOrders = prev.orders.filter(o =>
@@ -218,7 +321,7 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
           id: crypto.randomUUID(),
           accountId: pos.accountId,
           symbol: pos.symbol,
-          side: 'sell',
+          side: exitSide,
           type: 'stop_loss',
           quantity: pos.quantity,
           limitPrice: stopLoss,
@@ -232,7 +335,7 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
           id: crypto.randomUUID(),
           accountId: pos.accountId,
           symbol: pos.symbol,
-          side: 'sell',
+          side: exitSide,
           type: 'take_profit',
           quantity: pos.quantity,
           limitPrice: takeProfit,
@@ -290,39 +393,26 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
 
         if (!shouldOrderFill(order, price)) continue;
 
-        // Fill buy order
-        if (order.side === 'buy') {
-          const mult = getAssetUSDMultiplier(order.symbol);
-          const cost = price * order.quantity * mult;
-          const acc = updated.accounts.find(a => a.id === order.accountId);
-          if (!acc || acc.cashUSD < cost) {
-            updated = { ...updated, orders: updated.orders.map(o => o.id === order.id ? { ...o, status: 'cancelled' as const } : o) };
-            continue;
-          }
-          updated = {
-            ...updated,
-            accounts: updated.accounts.map(a => a.id === order.accountId ? { ...a, cashUSD: a.cashUSD - cost } : a),
-            positions: [...updated.positions, {
-              id: crypto.randomUUID(), accountId: order.accountId,
-              symbol: order.symbol, quantity: order.quantity,
-              entryPriceUSD: price, entryTime: Date.now(),
-            }],
-            orders: updated.orders.map(o => o.id === order.id ? { ...o, status: 'filled' as const, filledAt: Date.now(), filledPrice: price } : o),
-          };
-          onNotify?.('Limit Buy Filled', `Bought ${order.quantity} ${order.symbol} @ ${formatAssetPrice(price, order.symbol)}`, 'success');
-        } else {
-          // Sell order: find matching position (by linked positionId first)
-          const pos = order.positionId
-            ? updated.positions.find(p => p.id === order.positionId)
-            : updated.positions.find(p => p.symbol === order.symbol && p.accountId === order.accountId);
-          if (!pos) continue;
+        // Check if this order is linked to a position (SL/TP) or is an unlinked sell
+        const pos = order.positionId
+          ? updated.positions.find(p => p.id === order.positionId)
+          : (order.side === 'sell'
+              ? updated.positions.find(p => p.symbol === order.symbol && p.accountId === order.accountId && (p.side === 'long' || !p.side))
+              : null);
 
+        if (pos) {
+          // Closing or reducing linked position (long or short)
           const fillQty = Math.min(order.quantity, pos.quantity);
           const mult = getAssetUSDMultiplier(order.symbol);
-          const proceeds = price * fillQty * mult;
-          const pnl = (price - pos.entryPriceUSD) * fillQty * mult;
+          const isShort = pos.side === 'short';
+          const pnl = isShort
+            ? (pos.entryPriceUSD - price) * fillQty * mult
+            : (price - pos.entryPriceUSD) * fillQty * mult;
+          const marginCost = pos.entryPriceUSD * fillQty * mult;
+          const proceeds = isShort ? Math.max(0, marginCost + pnl) : price * fillQty * mult;
           const trade: ClosedTrade = {
             id: crypto.randomUUID(), accountId: order.accountId, symbol: order.symbol,
+            side: pos.side ?? 'long',
             quantity: fillQty, entryPriceUSD: pos.entryPriceUSD, exitPriceUSD: price,
             realizedPnLUSD: pnl, entryTime: pos.entryTime, exitTime: Date.now(),
           };
@@ -365,9 +455,29 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
 
           onNotify?.(
             notifTitle,
-            `Sold ${fillQty} ${order.symbol} @ ${formatAssetPrice(price, order.symbol)} (${pnl >= 0 ? '+' : ''}${formatCurrency(pnl, curr)})`,
+            `${isShort ? 'Covered' : 'Sold'} ${fillQty} ${order.symbol} @ ${formatAssetPrice(price, order.symbol)} (${pnl >= 0 ? '+' : ''}${formatCurrency(pnl, curr)})`,
             notifType
           );
+        } else if (order.side === 'buy') {
+          // Regular unlinked limit buy order
+          const mult = getAssetUSDMultiplier(order.symbol);
+          const cost = price * order.quantity * mult;
+          const acc = updated.accounts.find(a => a.id === order.accountId);
+          if (!acc || acc.cashUSD < cost) {
+            updated = { ...updated, orders: updated.orders.map(o => o.id === order.id ? { ...o, status: 'cancelled' as const } : o) };
+            continue;
+          }
+          updated = {
+            ...updated,
+            accounts: updated.accounts.map(a => a.id === order.accountId ? { ...a, cashUSD: a.cashUSD - cost } : a),
+            positions: [...updated.positions, {
+              id: crypto.randomUUID(), accountId: order.accountId,
+              symbol: order.symbol, side: 'long', quantity: order.quantity,
+              entryPriceUSD: price, entryTime: Date.now(),
+            }],
+            orders: updated.orders.map(o => o.id === order.id ? { ...o, status: 'filled' as const, filledAt: Date.now(), filledPrice: price } : o),
+          };
+          onNotify?.('Limit Buy Filled', `Bought ${order.quantity} ${order.symbol} @ ${formatAssetPrice(price, order.symbol)}`, 'success');
         }
       }
       return updated;

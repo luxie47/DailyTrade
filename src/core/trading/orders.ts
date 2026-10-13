@@ -50,6 +50,18 @@ export function validateMarketSell(
 }
 
 /**
+ * Validates a direct market short order (selling without existing position).
+ */
+export function validateMarketShort(
+  cashUSD: number,
+  symbol: string,
+  quantity: number,
+  priceUSD: number
+): OrderValidationResult {
+  return validateMarketBuy(cashUSD, symbol, quantity, priceUSD);
+}
+
+/**
  * Validates a limit order against cash and price.
  */
 export function validateLimitOrder(
@@ -90,9 +102,11 @@ export function shouldOrderFill(order: Order, currentPrice: number): boolean {
     case 'limit':
       return order.side === 'buy' ? currentPrice <= target : currentPrice >= target;
     case 'take_profit':
-      return currentPrice >= target;
+      // If covering a short (side === 'buy'), take profit triggers when price drops <= target
+      return order.side === 'buy' ? currentPrice <= target : currentPrice >= target;
     case 'stop_loss':
-      return currentPrice <= target;
+      // If stopping out a short (side === 'buy'), stop loss triggers when price rises >= target
+      return order.side === 'buy' ? currentPrice >= target : currentPrice <= target;
     default:
       return false;
   }
@@ -108,12 +122,20 @@ export function createClosedTrade(
   quantity: number = position.quantity
 ): ClosedTrade {
   const multiplier = getAssetUSDMultiplier(position.symbol);
-  const realizedPnLUSD = (exitPriceUSD - position.entryPriceUSD) * quantity * multiplier;
+  const diff = position.side === 'short'
+    ? position.entryPriceUSD - exitPriceUSD
+    : exitPriceUSD - position.entryPriceUSD;
+  const realizedPnLUSD = diff * quantity * multiplier;
+
+  const id = typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : 'tr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
 
   return {
-    id: crypto.randomUUID(),
+    id,
     accountId,
     symbol: position.symbol,
+    side: position.side ?? 'long',
     quantity,
     entryPriceUSD: position.entryPriceUSD,
     exitPriceUSD,

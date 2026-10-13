@@ -25,6 +25,7 @@ export interface Position {
   id: string;
   accountId: string;
   symbol: string;
+  side?: 'long' | 'short'; // Defaults to 'long'
   quantity: number;
   entryPriceUSD: number;
   entryTime: number;
@@ -36,6 +37,7 @@ export interface ClosedTrade {
   id: string;
   accountId: string;
   symbol: string;
+  side?: 'long' | 'short';
   quantity: number;
   entryPriceUSD: number;
   exitPriceUSD: number;

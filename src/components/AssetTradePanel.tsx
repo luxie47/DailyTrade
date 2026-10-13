@@ -116,11 +116,15 @@ export function AssetTradePanel({
       return;
     }
 
-    // SELL — never reaches onMarketBuy
+    // SELL — sells existing long OR opens direct short
     if (action === TRADE_ACTION.SELL) {
-      if (!position || position.quantity <= 0) return;
-      const qty = Math.min(usd / priceUSD, position.quantity);
-      onMarketSell(qty);
+      if (position && (position.side === 'long' || !position.side)) {
+        const qty = Math.min(usd / priceUSD, position.quantity);
+        onMarketSell(qty);
+      } else {
+        const qty = usd / priceUSD;
+        onMarketSell(qty);
+      }
       return;
     }
   };
@@ -363,7 +367,9 @@ export function AssetTradePanel({
               <div style={{ padding: '8px 10px', background: 'var(--bg-subtle)', border: '1px solid var(--border-dim)', borderRadius: 2 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <span className="badge badge-neutral" style={{ fontSize: 9 }}>ACTIVE LONG</span>
+                    <span className={`badge ${position.side === 'short' ? 'badge-bear' : 'badge-bull'}`} style={{ fontSize: 9 }}>
+                      {position.side === 'short' ? 'ACTIVE SHORT' : 'ACTIVE LONG'}
+                    </span>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
                       {position.quantity.toFixed(position.quantity < 1 ? 4 : 2)} units
                     </span>
@@ -421,17 +427,17 @@ export function AssetTradePanel({
                 style={{ fontSize: 11, padding: '8px 12px', fontWeight: 700, flexShrink: 0 }}
                 data-action={TRADE_ACTION.BUY}
                 onClick={() => executeQuickTrade(TRADE_ACTION.BUY)}
+                title={position?.side === 'short' ? 'Buy to cover / reduce Short position' : 'Buy (profit if price rises)'}
               >
                 BUY
               </button>
-              {/* SELL — explicitly passes TRADE_ACTION.SELL; disabled when no position */}
+              {/* SELL — explicitly passes TRADE_ACTION.SELL; opens short directly or closes/reduces long */}
               <button
                 className="btn btn-bear"
-                style={{ fontSize: 11, padding: '8px 12px', fontWeight: 700, flexShrink: 0, opacity: position ? 1 : 0.4, cursor: position ? 'pointer' : 'not-allowed' }}
+                style={{ fontSize: 11, padding: '8px 12px', fontWeight: 700, flexShrink: 0 }}
                 data-action={TRADE_ACTION.SELL}
                 onClick={() => executeQuickTrade(TRADE_ACTION.SELL)}
-                disabled={!position}
-                title={!position ? 'No open position to sell' : `Sell up to ${position.quantity.toFixed(4)} units`}
+                title={!position ? 'Open a SHORT position (profit if price falls)' : position.side === 'short' ? `Add to Short (${position.quantity.toFixed(4)} held)` : `Sell / close Long (${position.quantity.toFixed(4)} held)`}
               >
                 SELL
               </button>

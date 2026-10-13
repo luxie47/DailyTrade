@@ -29,7 +29,7 @@ import {
 } from './services/marketData';
 import type { Candle } from './types/market';
 import { Download } from 'lucide-react';
-import { formatAssetPrice } from './utils/formatPrice';
+import { formatAssetPrice, getAssetUSDMultiplier } from './utils/formatPrice';
 import { syncAndroidWidget } from './native/widgetBridge';
 import { TIMERS, STORAGE_KEYS } from './config/constants';
 import { ErrorBoundary } from './shared/components/ErrorBoundary';
@@ -336,6 +336,8 @@ export default function App() {
               candles={candles}
               livePrice={livePrice}
               entryPrice={engine.positions.find(p => p.symbol === selectedAsset.symbol)?.entryPriceUSD}
+              stopLoss={engine.positions.find(p => p.symbol === selectedAsset.symbol)?.stopLoss}
+              takeProfit={engine.positions.find(p => p.symbol === selectedAsset.symbol)?.takeProfit}
               timeframe={timeframe}
               onTimeframeChange={setTimeframe}
               loading={loading}
@@ -395,13 +397,21 @@ export default function App() {
               {/* Open positions for this asset */}
               {engine.positions.filter(p => p.symbol === selectedAsset.symbol).map(pos => {
                 const cur = prices[pos.symbol] ?? pos.entryPriceUSD;
-                const pnl = (cur - pos.entryPriceUSD) * pos.quantity;
+                const isShort = pos.side === 'short';
+                const mult = getAssetUSDMultiplier(pos.symbol);
+                const diff = isShort ? (pos.entryPriceUSD - cur) : (cur - pos.entryPriceUSD);
+                const pnl = diff * pos.quantity * mult;
                 const isUp = pnl >= 0;
                 return (
                   <div key={pos.id} className="row between" style={{ padding: '8px 10px', background: 'var(--bg-subtle)', border: '1px solid var(--border-dim)', marginTop: 8 }}>
-                    <span className="mono" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                      LONG {pos.quantity.toFixed(pos.quantity < 1 ? 6 : 4)} @ {formatAssetPrice(pos.entryPriceUSD, pos.symbol)}
-                    </span>
+                    <div className="row gap-2" style={{ alignItems: 'center' }}>
+                      <span className={`badge ${isShort ? 'badge-bear' : 'badge-bull'}`} style={{ fontSize: 9 }}>
+                        {isShort ? 'SHORT' : 'LONG'}
+                      </span>
+                      <span className="mono" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                        {pos.quantity.toFixed(pos.quantity < 1 ? 6 : 4)} @ {formatAssetPrice(pos.entryPriceUSD, pos.symbol)}
+                      </span>
+                    </div>
                     <div className="row gap-2">
                       <span className="num font-bold" style={{ fontSize: 12, color: isUp ? 'var(--color-bull)' : 'var(--color-bear)' }}>
                         {isUp ? '+' : ''}{formatCurrency(pnl, engine.activeAccount.currency, true)}
@@ -506,7 +516,7 @@ export default function App() {
           account={engine.activeAccount}
           positionQty={engine.positions.find(p => p.symbol === selectedAsset.symbol)?.quantity}
           onMarketBuy={(qty, sl, tp) => engine.marketBuy(selectedAsset.symbol, qty, curPrice, sl, tp)}
-          onMarketSell={(qty) => engine.marketSell(selectedAsset.symbol, qty, curPrice)}
+          onMarketSell={(qty, sl, tp) => engine.marketSell(selectedAsset.symbol, qty, curPrice, sl, tp)}
           onLimitOrder={(side, qty, price) => engine.placeLimitOrder(selectedAsset.symbol, side, qty, price)}
           onClose={() => setShowTradeModal(false)}
         />

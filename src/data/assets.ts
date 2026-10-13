@@ -41,6 +41,9 @@ export const ASSETS: Asset[] = [
   { symbol:'RUNEUSDT',  name:'THORChain',         class:'crypto',    quoteSymbol:'RUNEUSDT',      iconLetters:'RUNE', iconColor:'#33ff99' },
   { symbol:'PENDLEUSDT',name:'Pendle Finance',    class:'crypto',    quoteSymbol:'PENDLEUSDT',    iconLetters:'PEND', iconColor:'#2563eb' },
   { symbol:'WLDUSDT',   name:'Worldcoin',         class:'crypto',    quoteSymbol:'WLDUSDT',       iconLetters:'WLD',  iconColor:'#111827' },
+  { symbol:'TAOUSDT',   name:'Bittensor (AI)',    class:'crypto',    quoteSymbol:'TAOUSDT',       iconLetters:'TAO',  iconColor:'#10b981' },
+  { symbol:'ONDOUSDT',  name:'Ondo Finance (RWA)',class:'crypto',    quoteSymbol:'ONDOUSDT',      iconLetters:'ONDO', iconColor:'#2563eb' },
+  { symbol:'JUPUSDT',   name:'Jupiter (Solana DEX)',class:'crypto',  quoteSymbol:'JUPUSDT',       iconLetters:'JUP',  iconColor:'#f97316' },
 
   // ── 2. Commodities, Metals & Agriculture (Yahoo Finance) ───────────────────
   { symbol:'CL=F',      name:'Crude Oil WTI',     class:'commodity', quoteSymbol:'CL=F',          iconLetters:'WTI',  iconColor:'#374151' },
@@ -49,6 +52,7 @@ export const ASSETS: Asset[] = [
   { symbol:'RB=F',      name:'RBOB Gasoline',     class:'commodity', quoteSymbol:'RB=F',          iconLetters:'GASO', iconColor:'#f97316' },
   { symbol:'HO=F',      name:'Heating Oil',       class:'commodity', quoteSymbol:'HO=F',          iconLetters:'HEAT', iconColor:'#ea580c' },
   { symbol:'GC=F',      name:'Gold Futures',      class:'commodity', quoteSymbol:'GC=F',          iconLetters:'XAU',  iconColor:'#f59e0b' },
+  { symbol:'XAUUSD=X',  name:'Gold (Spot USD)',   class:'commodity', quoteSymbol:'GC=F',          iconLetters:'GOLD', iconColor:'#f59e0b' },
   { symbol:'SI=F',      name:'Silver Futures',    class:'commodity', quoteSymbol:'SI=F',          iconLetters:'XAG',  iconColor:'#9ca3af' },
   { symbol:'HG=F',      name:'Copper Futures',    class:'commodity', quoteSymbol:'HG=F',          iconLetters:'COP',  iconColor:'#d97706' },
   { symbol:'PL=F',      name:'Platinum Futures',  class:'commodity', quoteSymbol:'PL=F',          iconLetters:'PLT',  iconColor:'#e2e8f0' },
@@ -60,7 +64,13 @@ export const ASSETS: Asset[] = [
   { symbol:'SB=F',      name:'Sugar #11 Futures', class:'commodity', quoteSymbol:'SB=F',          iconLetters:'SUG',  iconColor:'#f8fafc' },
   { symbol:'CC=F',      name:'Cocoa Futures',     class:'commodity', quoteSymbol:'CC=F',          iconLetters:'COCO', iconColor:'#451a03' },
   { symbol:'CT=F',      name:'Cotton Futures',    class:'commodity', quoteSymbol:'CT=F',          iconLetters:'COT',  iconColor:'#e2e8f0' },
-  { symbol:'LBS=F',     name:'Lumber Futures',    class:'commodity', quoteSymbol:'LBS=F',         iconLetters:'LMB',  iconColor:'#b45309' },
+  { symbol:'LBR=F',     name:'Lumber Futures',    class:'commodity', quoteSymbol:'LBR=F',         iconLetters:'LMB',  iconColor:'#b45309' },
+  { symbol:'URA',       name:'Global X Uranium ETF',class:'commodity',quoteSymbol:'URA',          iconLetters:'URA',  iconColor:'#f59e0b' },
+  { symbol:'UNG',       name:'US Natural Gas Fund',class:'commodity',quoteSymbol:'UNG',          iconLetters:'UNG',  iconColor:'#0284c7' },
+  { symbol:'CPER',      name:'US Copper Index Fund',class:'commodity',quoteSymbol:'CPER',         iconLetters:'CPER', iconColor:'#d97706' },
+  { symbol:'LIT',       name:'Lithium & Battery Tech ETF',class:'commodity',quoteSymbol:'LIT',     iconLetters:'LIT',  iconColor:'#10b981' },
+  { symbol:'DBA',       name:'Invesco Agriculture Fund',class:'commodity',quoteSymbol:'DBA',       iconLetters:'DBA',  iconColor:'#84cc16' },
+  { symbol:'GDX',       name:'VanEck Gold Miners ETF',class:'commodity',quoteSymbol:'GDX',         iconLetters:'GDX',  iconColor:'#f59e0b' },
 
   // ── 3. US Dollars & Forex Currencies ────────────────────────────────────────
   { symbol:'DX-Y.NYB',  name:'US Dollar Index (DXY)', class:'forex', quoteSymbol:'DX-Y.NYB',      iconLetters:'DXY',  iconColor:'#10b981' },
@@ -124,6 +134,13 @@ export const ASSETS: Asset[] = [
   { symbol:'GOLDBEES.NS',   name:'Nippon Gold BeES ETF',    class:'fund', quoteSymbol:'GOLDBEES.NS',   iconLetters:'GOLD', iconColor:'#eab308' },
   { symbol:'SILVERBEES.NS', name:'Nippon Silver BeES ETF',  class:'fund', quoteSymbol:'SILVERBEES.NS', iconLetters:'SLVR', iconColor:'#94a3b8' },
   { symbol:'MON100.NS',     name:'Motilal Oswal Nasdaq 100',class:'fund', quoteSymbol:'MON100.NS',     iconLetters:'M100', iconColor:'#7c3aed' },
+  { symbol:'TQQQ',          name:'ProShares UltraPro QQQ 3X', class:'fund', quoteSymbol:'TQQQ',   iconLetters:'TQQQ', iconColor:'#7c3aed' },
+  { symbol:'SQQQ',          name:'ProShares UltraPro Short QQQ 3X', class:'fund', quoteSymbol:'SQQQ', iconLetters:'SQQQ', iconColor:'#dc2626' },
+  { symbol:'SOXL',          name:'Direxion Semiconductor 3X', class:'fund', quoteSymbol:'SOXL',   iconLetters:'SOXL', iconColor:'#6366f1' },
+  { symbol:'XBI',           name:'SPDR S&P Biotech ETF', class:'fund', quoteSymbol:'XBI',         iconLetters:'XBI',  iconColor:'#0d9488' },
+  { symbol:'VT',            name:'Vanguard Total World Stock',class:'fund', quoteSymbol:'VT',      iconLetters:'VT',   iconColor:'#0284c7' },
+  { symbol:'JEPI',          name:'JPMorgan Equity Premium Income',class:'fund',quoteSymbol:'JEPI', iconLetters:'JEPI', iconColor:'#059669' },
+  { symbol:'IBIT',          name:'iShares Bitcoin Trust ETF',class:'fund', quoteSymbol:'IBIT',     iconLetters:'IBIT', iconColor:'#f59e0b' },
 
   // ── 6. US Stocks (Mega-Cap & Global Giants) ──────────────────────────────────
   { symbol:'AAPL',      name:'Apple',             class:'stock',     quoteSymbol:'AAPL',          iconLetters:'AAPL' },
@@ -190,6 +207,14 @@ export const ASSETS: Asset[] = [
   { symbol:'LMT',       name:'Lockheed Martin',   class:'stock',     quoteSymbol:'LMT',           iconLetters:'LMT',  iconColor:'#002f6c' },
   { symbol:'BA',        name:'Boeing',            class:'stock',     quoteSymbol:'BA',            iconLetters:'BA',   iconColor:'#0033a0' },
   { symbol:'CAT',       name:'Caterpillar',       class:'stock',     quoteSymbol:'CAT',           iconLetters:'CAT',  iconColor:'#ffcd00' },
+  { symbol:'SHOP',      name:'Shopify',           class:'stock',     quoteSymbol:'SHOP',          iconLetters:'SHOP', iconColor:'#95bf47' },
+  { symbol:'SPOT',      name:'Spotify',           class:'stock',     quoteSymbol:'SPOT',          iconLetters:'SPOT', iconColor:'#1ed760' },
+  { symbol:'DELL',      name:'Dell Technologies', class:'stock',     quoteSymbol:'DELL',          iconLetters:'DELL', iconColor:'#007db8' },
+  { symbol:'APP',       name:'AppLovin (AI Ads)', class:'stock',     quoteSymbol:'APP',           iconLetters:'APP',  iconColor:'#f43f5e' },
+  { symbol:'NET',       name:'Cloudflare',        class:'stock',     quoteSymbol:'NET',           iconLetters:'NET',  iconColor:'#f6821f' },
+  { symbol:'RDDT',      name:'Reddit',            class:'stock',     quoteSymbol:'RDDT',          iconLetters:'RDDT', iconColor:'#ff4500' },
+  { symbol:'RBLX',      name:'Roblox',            class:'stock',     quoteSymbol:'RBLX',          iconLetters:'RBLX', iconColor:'#000000' },
+  { symbol:'BABA',      name:'Alibaba Group',     class:'stock',     quoteSymbol:'BABA',          iconLetters:'BABA', iconColor:'#ff6a00' },
 
   // ── 7. Indian Benchmark Indices & Bluechips (NSE / BSE) ─────────────────────
   { symbol:'^NSEI',         name:'Nifty 50 Index',       class:'fund',      quoteSymbol:'^NSEI',         iconLetters:'NIFTY',iconColor:'#f97316' },
@@ -209,7 +234,7 @@ export const ASSETS: Asset[] = [
   { symbol:'BAJFINANCE.NS', name:'Bajaj Finance',       class:'stock', quoteSymbol:'BAJFINANCE.NS', iconLetters:'BAJF', iconColor:'#0284c7' },
   { symbol:'BAJAJFINSV.NS', name:'Bajaj Finserv',       class:'stock', quoteSymbol:'BAJAJFINSV.NS', iconLetters:'BAJAJ',iconColor:'#003875' },
   { symbol:'MARUTI.NS',     name:'Maruti Suzuki',       class:'stock', quoteSymbol:'MARUTI.NS',     iconLetters:'MRUT', iconColor:'#dc2626' },
-  { symbol:'TATAMOTORS.NS', name:'Tata Motors',         class:'stock', quoteSymbol:'TATAMOTORS.NS', iconLetters:'TATA', iconColor:'#1d4ed8' },
+  { symbol:'TATAMOTORS.NS', name:'Tata Motors',         class:'stock', quoteSymbol:'TMPV.NS',        iconLetters:'TATA', iconColor:'#1d4ed8' },
   { symbol:'TATASTEEL.NS',  name:'Tata Steel',          class:'stock', quoteSymbol:'TATASTEEL.NS',  iconLetters:'TATST',iconColor:'#475569' },
   { symbol:'TITAN.NS',      name:'Titan Company',       class:'stock', quoteSymbol:'TITAN.NS',      iconLetters:'TITN', iconColor:'#ca8a04' },
   { symbol:'KOTAKBANK.NS',  name:'Kotak Mahindra Bank', class:'stock', quoteSymbol:'KOTAKBANK.NS',  iconLetters:'KOTK', iconColor:'#dc2626' },
@@ -233,7 +258,7 @@ export const ASSETS: Asset[] = [
   { symbol:'BRITANNIA.NS',  name:'Britannia Industries',class:'stock', quoteSymbol:'BRITANNIA.NS',  iconLetters:'BRIT', iconColor:'#b91c1c' },
   { symbol:'NESTLEIND.NS',  name:'Nestle India',        class:'stock', quoteSymbol:'NESTLEIND.NS',  iconLetters:'NEST', iconColor:'#1e40af' },
   { symbol:'INDUSINDBK.NS', name:'IndusInd Bank',       class:'stock', quoteSymbol:'INDUSINDBK.NS', iconLetters:'IIB',  iconColor:'#7f1d1d' },
-  { symbol:'ZOMATO.NS',     name:'Zomato',              class:'stock', quoteSymbol:'ZOMATO.NS',     iconLetters:'ZOM',  iconColor:'#e11d48' },
+  { symbol:'ZOMATO.NS',     name:'Zomato',              class:'stock', quoteSymbol:'ETERNAL.NS',     iconLetters:'ZOM',  iconColor:'#e11d48' },
   { symbol:'JIOFIN.NS',     name:'Jio Financial Services',class:'stock',quoteSymbol:'JIOFIN.NS',    iconLetters:'JIO',  iconColor:'#004c8f' },
   { symbol:'PAYTM.NS',      name:'Paytm (One97)',       class:'stock', quoteSymbol:'PAYTM.NS',      iconLetters:'PAYTM',iconColor:'#00b9f5' },
   { symbol:'TRENT.NS',      name:'Trent (Tata Westside/Zudio)',class:'stock',quoteSymbol:'TRENT.NS',iconLetters:'TRNT',iconColor:'#6d28d9' },
@@ -255,6 +280,14 @@ export const ASSETS: Asset[] = [
   { symbol:'VBL.NS',        name:'Varun Beverages',      class:'stock', quoteSymbol:'VBL.NS',        iconLetters:'VBL',  iconColor:'#2563eb' },
   { symbol:'PIDILITIND.NS', name:'Pidilite (Fevicol)',   class:'stock', quoteSymbol:'PIDILITIND.NS', iconLetters:'PIDI', iconColor:'#ca8a04' },
   { symbol:'SUZLON.NS',     name:'Suzlon Energy',        class:'stock', quoteSymbol:'SUZLON.NS',     iconLetters:'SUZL', iconColor:'#10b981' },
+  { symbol:'MAZDOCK.NS',    name:'Mazagon Dock Defence', class:'stock', quoteSymbol:'MAZDOCK.NS',    iconLetters:'MDOCK',iconColor:'#0369a1' },
+  { symbol:'KPITTECH.NS',   name:'KPIT Auto Software',   class:'stock', quoteSymbol:'KPITTECH.NS',   iconLetters:'KPIT', iconColor:'#4f46e5' },
+  { symbol:'KALYANKJIL.NS', name:'Kalyan Jewellers',     class:'stock', quoteSymbol:'KALYANKJIL.NS', iconLetters:'KLYN', iconColor:'#ca8a04' },
+  { symbol:'POLYCAB.NS',    name:'Polycab India Cables', class:'stock', quoteSymbol:'POLYCAB.NS',    iconLetters:'POLY', iconColor:'#0284c7' },
+  { symbol:'DIXON.NS',      name:'Dixon Technologies EMS',class:'stock',quoteSymbol:'DIXON.NS',      iconLetters:'DIXN', iconColor:'#e11d48' },
+  { symbol:'RVNL.NS',       name:'Rail Vikas Nigam',     class:'stock', quoteSymbol:'RVNL.NS',       iconLetters:'RVNL', iconColor:'#15803d' },
+  { symbol:'PERSISTENT.NS', name:'Persistent Systems',   class:'stock', quoteSymbol:'PERSISTENT.NS', iconLetters:'PSYS', iconColor:'#4f46e5' },
+  { symbol:'NHPC.NS',       name:'NHPC Hydro Energy',    class:'stock', quoteSymbol:'NHPC.NS',       iconLetters:'NHPC', iconColor:'#059669' },
 ];
 
 export const ASSET_MAP: Record<string, Asset> = Object.fromEntries(

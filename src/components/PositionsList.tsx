@@ -26,7 +26,9 @@ export function PositionsList({ positions, orders, history, prices, account, onC
   const [modalTp, setModalTp] = useState('');
   const totalUnrPnL = positions.reduce((sum, p) => {
     const cur = prices[p.symbol] ?? p.entryPriceUSD;
-    return sum + (cur - p.entryPriceUSD) * p.quantity * getAssetUSDMultiplier(p.symbol);
+    const isShort = p.side === 'short';
+    const diff = isShort ? (p.entryPriceUSD - cur) : (cur - p.entryPriceUSD);
+    return sum + diff * p.quantity * getAssetUSDMultiplier(p.symbol);
   }, 0);
   const totalRealPnL = history.reduce((sum, h) => sum + h.realizedPnLUSD, 0);
   const winTrades = history.filter(h => h.realizedPnLUSD > 0).length;
@@ -84,9 +86,11 @@ export function PositionsList({ positions, orders, history, prices, account, onC
       {positions.map(pos => {
         const hasLive = prices[pos.symbol] != null;
         const curPrice = prices[pos.symbol] ?? pos.entryPriceUSD;
+        const isShort = pos.side === 'short';
         const mult = getAssetUSDMultiplier(pos.symbol);
-        const pnlUSD = (curPrice - pos.entryPriceUSD) * pos.quantity * mult;
-        const pnlPct = pos.entryPriceUSD > 0 ? ((curPrice - pos.entryPriceUSD) / pos.entryPriceUSD) * 100 : 0;
+        const priceDiff = isShort ? (pos.entryPriceUSD - curPrice) : (curPrice - pos.entryPriceUSD);
+        const pnlUSD = priceDiff * pos.quantity * mult;
+        const pnlPct = pos.entryPriceUSD > 0 ? (priceDiff / pos.entryPriceUSD) * 100 : 0;
         const isUp = pnlUSD >= 0;
         const asset = ASSET_MAP[pos.symbol];
 
@@ -109,7 +113,9 @@ export function PositionsList({ positions, orders, history, prices, account, onC
                   <span className="mono font-bold" style={{ fontSize: 13, textDecoration: onSelectAsset ? 'underline' : 'none', textUnderlineOffset: 3 }}>
                     {pos.symbol.replace('.NS','').replace('USDT','')}
                   </span>
-                  <span className="badge badge-neutral" style={{ fontSize: 9 }}>LONG</span>
+                  <span className={`badge ${pos.side === 'short' ? 'badge-bear' : 'badge-neutral'}`} style={{ fontSize: 9 }}>
+                    {pos.side === 'short' ? 'SHORT' : 'LONG'}
+                  </span>
                   {onSelectAsset && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>↗</span>}
                 </div>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)' }}>
@@ -279,6 +285,9 @@ export function PositionsList({ positions, orders, history, prices, account, onC
                 <span className="mono font-bold" style={{ fontSize: 12, textDecoration: onSelectAsset ? 'underline' : 'none', textUnderlineOffset: 2 }}>
                   {h.symbol.replace('.NS','').replace('USDT','')}
                 </span>
+                <span className={`badge ${h.side === 'short' ? 'badge-bear' : 'badge-neutral'}`} style={{ fontSize: 8 }}>
+                  {h.side === 'short' ? 'SHORT' : 'LONG'}
+                </span>
                 {onSelectAsset && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>↗</span>}
               </div>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)' }}>
@@ -396,13 +405,13 @@ export function PositionsList({ positions, orders, history, prices, account, onC
               <div className="col gap-1">
                 <label className="row between" style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 600, color: 'var(--color-bear)' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <AlertTriangle size={11} /> STOP LOSS (SELL IF ≤)
+                    <AlertTriangle size={11} /> {sltpPos.side === 'short' ? 'STOP LOSS (BUY IF ≥)' : 'STOP LOSS (SELL IF ≤)'}
                   </span>
                   <span
                     style={{ fontSize: 10, cursor: 'pointer', textDecoration: 'underline' }}
-                    onClick={() => setModalSl((sltpPos.entryPriceUSD * 0.95).toFixed(2))}
+                    onClick={() => setModalSl((sltpPos.entryPriceUSD * (sltpPos.side === 'short' ? 1.05 : 0.95)).toFixed(2))}
                   >
-                    -5% Preset
+                    {sltpPos.side === 'short' ? '+5% Preset' : '-5% Preset'}
                   </span>
                 </label>
                 <input
@@ -419,13 +428,13 @@ export function PositionsList({ positions, orders, history, prices, account, onC
               <div className="col gap-1">
                 <label className="row between" style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 600, color: 'var(--color-bull)' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <Target size={11} /> TAKE PROFIT (SELL IF ≥)
+                    <Target size={11} /> {sltpPos.side === 'short' ? 'TAKE PROFIT (BUY IF ≤)' : 'TAKE PROFIT (SELL IF ≥)'}
                   </span>
                   <span
                     style={{ fontSize: 10, cursor: 'pointer', textDecoration: 'underline' }}
-                    onClick={() => setModalTp((sltpPos.entryPriceUSD * 1.05).toFixed(2))}
+                    onClick={() => setModalTp((sltpPos.entryPriceUSD * (sltpPos.side === 'short' ? 0.95 : 1.05)).toFixed(2))}
                   >
-                    +5% Preset
+                    {sltpPos.side === 'short' ? '-5% Preset' : '+5% Preset'}
                   </span>
                 </label>
                 <input

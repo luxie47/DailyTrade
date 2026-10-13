@@ -42,7 +42,7 @@ export function getBaselinePrice(symbol: string): number {
   if (symbol.includes('NVDA')) return 145;
   if (symbol.includes('CL=')) return 90.2;
   if (symbol.includes('BZ=')) return 93.5;
-  if (symbol.includes('GC=')) return 4240;
+  if (symbol.includes('GC=') || symbol.includes('XAU')) return 2650;
   if (symbol.includes('SI=')) return 34.5;
   if (symbol.includes('RELIANCE')) return 1187;
   if (symbol.includes('TCS')) return 3850;
@@ -56,6 +56,20 @@ export function getBaselinePrice(symbol: string): number {
   if (symbol.includes('^NSEI')) return 25000;
   if (symbol.includes('^BSESN')) return 82000;
   if (symbol.includes('^NSEBANK')) return 51000;
+  if (symbol.includes('DIXON')) return 14500;
+  if (symbol.includes('POLYCAB')) return 6800;
+  if (symbol.includes('PERSISTENT')) return 5400;
+  if (symbol.includes('RVNL')) return 420;
+  if (symbol.includes('NHPC')) return 85;
+  if (symbol.includes('IBIT')) return 48;
+  if (symbol.includes('RDDT')) return 115;
+  if (symbol.includes('BABA')) return 110;
+  if (symbol.includes('VT')) return 120;
+  if (symbol.includes('JEPI')) return 58;
+  if (symbol.includes('GDX')) return 38;
+  if (symbol.includes('LIT')) return 45;
+  if (symbol.includes('DBA')) return 24;
+  if (symbol.includes('SQQQ')) return 9;
   return 100;
 }
 

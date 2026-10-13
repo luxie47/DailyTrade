@@ -4,23 +4,18 @@ import { TIMEFRAME_PARAMS, generateFallbackCandles } from './syntheticAdapter';
 
 function getYahooUrls(path: string): string[] {
   const isCapacitor = isCapacitorNative();
-  const isDev = isLocalDev();
   const rawUrl = `${ENV.YAHOO_BASE_URL}${path}`;
-  const urls: string[] = [];
 
   if (isCapacitor) {
     // In native Android APK, Capacitor native HTTP has zero CORS restrictions
-    urls.push(rawUrl);
-    urls.push(`${ENV.ALLORIGINS_PROXY}${encodeURIComponent(rawUrl)}`);
-    return urls;
+    return [rawUrl, `${ENV.ALLORIGINS_PROXY}${encodeURIComponent(rawUrl)}`];
   }
 
-  if (isDev) {
-    urls.push(`${ENV.DEV_PROXY_PREFIX}${path}`);
+  if (isLocalDev()) {
+    return [`${ENV.DEV_PROXY_PREFIX}${path}`];
   }
-  urls.push(`${ENV.ALLORIGINS_PROXY}${encodeURIComponent(rawUrl)}`);
-  urls.push(rawUrl);
-  return urls;
+
+  return [`${ENV.ALLORIGINS_PROXY}${encodeURIComponent(rawUrl)}`];
 }
 
 interface YahooChartResponse {

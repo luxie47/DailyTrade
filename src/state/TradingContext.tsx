@@ -14,7 +14,7 @@ interface TradingContextValue {
   calcUnrealisedPnL: (prices: Record<string, number>) => number;
   recordEquity: (prices: Record<string, number>) => void;
   marketBuy: (symbol: string, quantity: number, priceUSD: number, stopLoss?: number, takeProfit?: number) => string | null;
-  marketSell: (symbol: string, quantity: number, priceUSD: number) => string | null;
+  marketSell: (symbol: string, quantity: number, priceUSD: number, stopLoss?: number, takeProfit?: number) => string | null;
   closePosition: (positionId: string, currentPriceUSD: number) => void;
   updatePositionSLTP: (positionId: string, stopLoss?: number, takeProfit?: number) => void;
   placeLimitOrder: (symbol: string, side: 'buy' | 'sell', quantity: number, limitPrice: number) => string | null;

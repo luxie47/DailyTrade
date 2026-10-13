@@ -2,6 +2,25 @@
 
 All notable changes to DailyTrade documented in this file.
 
+## [1.2.8] - 2026-10-13
+
+### Added
+- **Short Trading & Buy-to-Cover Engine**: Enabled direct short selling for all supported assets without requiring an existing long position. Implemented margin-locked equity accounting, inverted stop loss / take profit trigger evaluations, and clear direction-aware `SHORT` / `LONG` UI indicators across charts, open positions, and trade history.
+- **Visual Stop Loss & Take Profit Chart Lines**: Real-time interactive visualization of protective orders directly on Lightweight Charts with red dashed Stop Loss and green dashed Take Profit levels.
+- **High-Demand Market Catalog Expansion**: Expanded market coverage across all asset classes with over 30 new instruments:
+  - **Commodities & Resources**: Spot Gold benchmark (`XAUUSD=X` / `GC=F`), Lithium & Battery ETF (`LIT`), Invesco Agriculture (`DBA`), Gold Miners (`GDX`), Uranium (`URA`), Natural Gas (`UNG`), Copper (`CPER`).
+  - **Index Funds & Thematic ETFs**: UltraPro Short QQQ 3X (`SQQQ`), UltraPro QQQ 3X (`TQQQ`), Vanguard Total World (`VT`), JPMorgan Equity Premium (`JEPI`), iShares Bitcoin Trust (`IBIT`), Semiconductor 3X (`SOXL`), Biotech (`XBI`).
+  - **US Equities**: Reddit (`RDDT`), Roblox (`RBLX`), Alibaba Group (`BABA`), Shopify (`SHOP`), Spotify (`SPOT`), Dell (`DELL`), AppLovin (`APP`), Cloudflare (`NET`).
+  - **Indian Market Leaders**: Polycab India (`POLYCAB.NS`), Dixon Technologies (`DIXON.NS`), Rail Vikas Nigam (`RVNL.NS`), Persistent Systems (`PERSISTENT.NS`), NHPC (`NHPC.NS`), Mazagon Dock (`MAZDOCK.NS`), KPIT Tech (`KPITTECH.NS`), Kalyan Jewellers (`KALYANKJIL.NS`).
+
+### Fixed
+- **Price Axis Label Collision**: Resolved duplicate overlapping price badge rendered on Lightweight Charts by disabling secondary axis labels on real-time price tracker lines.
+- **Chart Candle Timestamp Sequencing**: Implemented strict sorting and deduplication for incoming candle arrays to eliminate irregular candlestick transitions and width distortion.
+- **Web Browser CORS Proxy Routing**: Hardened multi-tier network waterfall in `yahooAdapter` to prevent direct browser calls against raw Yahoo endpoints, ensuring clean console logs in development and production webviews.
+- **NSE Demerger & Rebrand Symbol Mapping**: Updated `TATAMOTORS.NS` to active quote ticker `TMPV.NS` and `ZOMATO.NS` to `ETERNAL.NS` to prevent 404 response errors.
+
+---
+
 ## [1.2.7] - 2026-10-12
 
 ### Changed

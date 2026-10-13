@@ -28,6 +28,7 @@ export function getAssetCurrencyFormat(symbol: string): CurrencyFormat {
     return { prefix: '', suffix: '', decimals: 2 };
   }
   if (symbol.endsWith('=X')) {
+    if (symbol.startsWith('XAU')) return { prefix: '$', suffix: '', decimals: 2 };
     if (symbol.startsWith('USDINR')) return { prefix: '₹', suffix: '', decimals: 2 };
     return { prefix: '', suffix: '', decimals: 4 }; // e.g. 1.1364 for EUR/USD
   }

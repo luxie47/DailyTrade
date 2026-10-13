@@ -25,6 +25,8 @@ interface Props {
   candles: Candle[];
   livePrice: number | null;
   entryPrice?: number;           // dotted entry price line
+  stopLoss?: number;             // red dashed SL line
+  takeProfit?: number;           // green dashed TP line
   timeframe: Timeframe;
   onTimeframeChange: (tf: Timeframe) => void;
   loading: boolean;
@@ -32,7 +34,7 @@ interface Props {
 }
 
 export function TradingViewChart({
-  symbol, name, assetClass, candles, livePrice, entryPrice,
+  symbol, name, assetClass, candles, livePrice, entryPrice, stopLoss, takeProfit,
   timeframe, onTimeframeChange, loading, onBack
 }: Props) {
   const containerRef  = useRef<HTMLDivElement>(null);
@@ -41,6 +43,8 @@ export function TradingViewChart({
   const areaRef       = useRef<ISeriesApi<'Area'> | null>(null);
   const volRef        = useRef<ISeriesApi<'Histogram'> | null>(null);
   const entryLineRef  = useRef<IPriceLine | null>(null);
+  const slLineRef     = useRef<IPriceLine | null>(null);
+  const tpLineRef     = useRef<IPriceLine | null>(null);
   const curLineRef    = useRef<IPriceLine | null>(null);
   const [chartType, setChartType] = useState<'candle' | 'area'>('candle');
 
@@ -125,6 +129,14 @@ export function TradingViewChart({
       try { candleRef.current.removePriceLine(curLineRef.current); } catch { /* ok */ }
       curLineRef.current = null;
     }
+    if (slLineRef.current && candleRef.current) {
+      try { candleRef.current.removePriceLine(slLineRef.current); } catch { /* ok */ }
+      slLineRef.current = null;
+    }
+    if (tpLineRef.current && candleRef.current) {
+      try { candleRef.current.removePriceLine(tpLineRef.current); } catch { /* ok */ }
+      tpLineRef.current = null;
+    }
     lastCandleRef.current = null;
     const precision = symbol.includes('=X') && !symbol.includes('USDINR') ? 4 : 2;
     candleRef.current?.applyOptions({
@@ -145,18 +157,42 @@ export function TradingViewChart({
 
   // ── Load candle data ─────────────────────────────────────────────────────
   useEffect(() => {
-    if (!candles.length) return;
-    lastCandleRef.current = { ...candles[candles.length - 1] };
-    const cdData = candles.map(c => ({ time: c.time as Time, open: c.open, high: c.high, low: c.low, close: c.close }));
-    const aData  = candles.map(c => ({ time: c.time as Time, value: c.close }));
-    const vData  = candles.map(c => ({
+    if (!candles.length) {
+      lastCandleRef.current = null;
+      try {
+        candleRef.current?.setData([]);
+        areaRef.current?.setData([]);
+        volRef.current?.setData([]);
+      } catch { /* ok */ }
+      return;
+    }
+    // Sort and deduplicate timestamps to ensure strictly ascending order
+    const sorted = [...candles].sort((a, b) => {
+      const ta = typeof a.time === 'number' ? a.time : new Date(a.time as string).getTime() / 1000;
+      const tb = typeof b.time === 'number' ? b.time : new Date(b.time as string).getTime() / 1000;
+      return ta - tb;
+    });
+    const unique: Candle[] = [];
+    const seen = new Set<number | string>();
+    for (const c of sorted) {
+      if (!seen.has(c.time)) {
+        seen.add(c.time);
+        unique.push(c);
+      }
+    }
+    lastCandleRef.current = { ...unique[unique.length - 1] };
+    const cdData = unique.map(c => ({ time: c.time as Time, open: c.open, high: c.high, low: c.low, close: c.close }));
+    const aData  = unique.map(c => ({ time: c.time as Time, value: c.close }));
+    const vData  = unique.map(c => ({
       time: c.time as Time, value: c.volume ?? 0,
       color: c.close >= c.open ? 'rgba(0,230,118,0.18)' : 'rgba(255,61,113,0.18)',
     }));
-    candleRef.current?.setData(cdData);
-    areaRef.current?.setData(aData);
-    volRef.current?.setData(vData);
-    if (candles.length > 60) {
+    try {
+      candleRef.current?.setData(cdData);
+      areaRef.current?.setData(aData);
+      volRef.current?.setData(vData);
+    } catch { /* ok */ }
+    if (unique.length > 60) {
       chartRef.current?.timeScale().fitContent();
     } else {
       chartRef.current?.timeScale().applyOptions({ barSpacing: 7, rightOffset: 5 });
@@ -172,45 +208,46 @@ export function TradingViewChart({
 
     const stepSec = TF_SECONDS[timeframe] || 300;
     const nowSec = Math.floor(Date.now() / 1000);
+    const alignedNow = Math.floor(nowSec / stepSec) * stepSec;
+    const curTime = typeof cur.time === 'number' ? cur.time : Math.floor(new Date(cur.time as string).getTime() / 1000);
+    const curAligned = Math.floor(curTime / stepSec) * stepSec;
 
-    // Compute the exact second when the NEXT candle boundary starts.
-    // e.g. for 1h: if cur.time = 1728720000 (16:00:00), nextBoundary = 1728723600 (17:00:00)
-    // This avoids the historical-timestamp vs wall-clock comparison bug.
-    const nextBoundary = (Math.floor((cur.time as number) / stepSec) + 1) * stepSec;
+    try {
+      if (alignedNow > curAligned) {
+        // Crossed into a new timeframe candle boundary: spawn fresh aligned bar
+        const newCandle: Candle = {
+          time: alignedNow,
+          open: livePrice,
+          high: livePrice,
+          low: livePrice,
+          close: livePrice,
+        };
+        lastCandleRef.current = newCandle;
+        candleRef.current?.update({
+          time: newCandle.time as Time,
+          open: newCandle.open,
+          high: newCandle.high,
+          low: newCandle.low,
+          close: newCandle.close,
+        });
+        areaRef.current?.update({ time: newCandle.time as Time, value: livePrice });
+      } else {
+        // Still in active bar: update high/low/close without stretching width
+        cur.high  = Math.max(cur.high, livePrice);
+        cur.low   = Math.min(cur.low, livePrice);
+        cur.close = livePrice;
 
-    if (nowSec >= nextBoundary) {
-      // Snap new candle open time to TF grid boundary so lightweight-charts
-      // places it at the correct x-position (prevents oversized bar rendering).
-      const alignedTime = Math.floor(nowSec / stepSec) * stepSec;
-      const newCandle: Candle = {
-        time: alignedTime,
-        open: livePrice,
-        high: livePrice,
-        low: livePrice,
-        close: livePrice,
-      };
-      lastCandleRef.current = newCandle;
-      candleRef.current?.update({
-        time: newCandle.time as Time,
-        open: newCandle.open,
-        high: newCandle.high,
-        low: newCandle.low,
-        close: newCandle.close,
-      });
-      areaRef.current?.update({ time: newCandle.time as Time, value: livePrice });
-    } else {
-      cur.high  = Math.max(cur.high, livePrice);
-      cur.low   = Math.min(cur.low, livePrice);
-      cur.close = livePrice;
-
-      candleRef.current?.update({
-        time: cur.time as Time,
-        open: cur.open,
-        high: cur.high,
-        low:  cur.low,
-        close: cur.close,
-      });
-      areaRef.current?.update({ time: cur.time as Time, value: livePrice });
+        candleRef.current?.update({
+          time: cur.time as Time,
+          open: cur.open,
+          high: cur.high,
+          low:  cur.low,
+          close: cur.close,
+        });
+        areaRef.current?.update({ time: cur.time as Time, value: livePrice });
+      }
+    } catch {
+      // Ignore time-order collision on fast websocket ticks
     }
 
     // ── Current price dotted line (green on up, red on down) ──────────────
@@ -224,7 +261,7 @@ export function TradingViewChart({
         color: isUp ? 'rgba(0, 230, 118, 0.85)' : 'rgba(255, 61, 113, 0.85)',
         lineWidth: 1,
         lineStyle: LineStyle.Dotted,
-        axisLabelVisible: true,
+        axisLabelVisible: false,
         title: '',
       });
     }
@@ -248,6 +285,44 @@ export function TradingViewChart({
       });
     }
   }, [entryPrice]);
+
+  // ── Stop Loss dashed line ────────────────────────────────────────────────
+  useEffect(() => {
+    if (!candleRef.current) return;
+    if (slLineRef.current) {
+      try { candleRef.current.removePriceLine(slLineRef.current); } catch { /* ok */ }
+      slLineRef.current = null;
+    }
+    if (stopLoss && stopLoss > 0) {
+      slLineRef.current = candleRef.current.createPriceLine({
+        price: stopLoss,
+        color: '#ff3d71',
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        axisLabelVisible: true,
+        title: 'SL',
+      });
+    }
+  }, [stopLoss]);
+
+  // ── Take Profit dashed line ──────────────────────────────────────────────
+  useEffect(() => {
+    if (!candleRef.current) return;
+    if (tpLineRef.current) {
+      try { candleRef.current.removePriceLine(tpLineRef.current); } catch { /* ok */ }
+      tpLineRef.current = null;
+    }
+    if (takeProfit && takeProfit > 0) {
+      tpLineRef.current = candleRef.current.createPriceLine({
+        price: takeProfit,
+        color: '#00e676',
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        axisLabelVisible: true,
+        title: 'TP',
+      });
+    }
+  }, [takeProfit]);
 
   // ── Chart type toggle ────────────────────────────────────────────────────
   useEffect(() => {

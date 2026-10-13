@@ -11,7 +11,7 @@ interface Props {
   account: Account;
   positionQty?: number;
   onMarketBuy: (qty: number, sl?: number, tp?: number) => string | null;
-  onMarketSell: (qty: number) => string | null;
+  onMarketSell: (qty: number, sl?: number, tp?: number) => string | null;
   onLimitOrder: (side: 'buy' | 'sell', qty: number, price: number) => string | null;
   onClose: () => void;
 }
@@ -58,8 +58,11 @@ export function TradeModal({ asset, currentPrice, account, positionQty, onMarket
           tpEnabled && tp ? parseFloat(tp) : undefined,
         );
       } else {
-        if (!hasPosition) { setError('No open position to sell'); return; }
-        err = onMarketSell(quantityNum);
+        err = onMarketSell(
+          quantityNum,
+          slEnabled && sl ? parseFloat(sl) : undefined,
+          tpEnabled && tp ? parseFloat(tp) : undefined,
+        );
       }
     } else {
       err = onLimitOrder(side, quantityNum, parseFloat(limitPrice) || currentPrice);
@@ -69,12 +72,11 @@ export function TradeModal({ asset, currentPrice, account, positionQty, onMarket
   };
 
   const symbolLabel = asset.symbol.replace('.NS', '').replace('USDT', '');
-  const isSellDisabled = side === 'sell' && tab === 'market' && !hasPosition;
   const execBtnClass = `btn ${side === 'buy' ? 'btn-bull' : 'btn-bear'}`;
   const execBtnLabel = tab === 'market'
     ? (side === 'buy'
         ? `BUY ${symbolLabel} AT MARKET`
-        : (hasPosition ? `SELL ${symbolLabel} AT MARKET` : 'NO POSITION TO SELL'))
+        : (hasPosition ? `SELL ${symbolLabel} AT MARKET` : `SELL SHORT ${symbolLabel} AT MARKET`))
     : `PLACE ${side.toUpperCase()} LIMIT ORDER`;
 
   return (
@@ -144,7 +146,7 @@ export function TradeModal({ asset, currentPrice, account, positionQty, onMarket
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: hasPosition ? 'var(--color-bull)' : 'var(--color-bear)' }}>
               {hasPosition
                 ? `Open: ${positionQty!.toFixed(positionQty! < 1 ? 6 : 4)} ${symbolLabel} available to sell`
-                : 'No open position — buy first to sell'}
+                : 'Direct Short — opens a position that profits if price falls'}
             </span>
           </div>
         )}
@@ -258,9 +260,8 @@ export function TradeModal({ asset, currentPrice, account, positionQty, onMarket
         {/* Execute Button */}
         <button
           className={execBtnClass}
-          style={{ width: '100%', padding: '14px', fontSize: 13, opacity: isSellDisabled ? 0.45 : 1, cursor: isSellDisabled ? 'not-allowed' : 'pointer' }}
+          style={{ width: '100%', padding: '14px', fontSize: 13, cursor: 'pointer' }}
           onClick={handleTrade}
-          disabled={isSellDisabled}
         >
           {execBtnLabel}
         </button>

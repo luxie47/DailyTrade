@@ -17,7 +17,10 @@ export interface PortfolioStats {
  */
 export function calculatePositionPnL(position: Position, currentPriceUSD: number): number {
   const multiplier = getAssetUSDMultiplier(position.symbol);
-  return (currentPriceUSD - position.entryPriceUSD) * position.quantity * multiplier;
+  const diff = position.side === 'short'
+    ? position.entryPriceUSD - currentPriceUSD
+    : currentPriceUSD - position.entryPriceUSD;
+  return diff * position.quantity * multiplier;
 }
 
 /**
@@ -25,7 +28,10 @@ export function calculatePositionPnL(position: Position, currentPriceUSD: number
  */
 export function calculatePositionPnLPct(position: Position, currentPriceUSD: number): number {
   if (position.entryPriceUSD <= 0) return 0;
-  return ((currentPriceUSD - position.entryPriceUSD) / position.entryPriceUSD) * 100;
+  const diff = position.side === 'short'
+    ? position.entryPriceUSD - currentPriceUSD
+    : currentPriceUSD - position.entryPriceUSD;
+  return (diff / position.entryPriceUSD) * 100;
 }
 
 /**
@@ -33,6 +39,11 @@ export function calculatePositionPnLPct(position: Position, currentPriceUSD: num
  */
 export function calculatePositionValue(position: Position, currentPriceUSD: number): number {
   const multiplier = getAssetUSDMultiplier(position.symbol);
+  if (position.side === 'short') {
+    const margin = position.entryPriceUSD * position.quantity * multiplier;
+    const pnl = calculatePositionPnL(position, currentPriceUSD);
+    return Math.max(0, margin + pnl);
+  }
   return currentPriceUSD * position.quantity * multiplier;
 }
 

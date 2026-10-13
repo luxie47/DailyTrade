@@ -20,6 +20,7 @@ export const DEFAULT_ACCOUNT = {
 
 export const APP_METADATA = {
   NAME: 'DailyTrade',
+  VERSION: '1.2.8',
   DONATE_URL: 'https://buymeachai.ezee.li/luxie47',
   DONATE_LABEL: 'Buy Me A Chai 🍵 / Donate',
 } as const;
