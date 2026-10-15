@@ -10,7 +10,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-8.x-646cff.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Capacitor](https://img.shields.io/badge/Capacitor-Android-119eff.svg?logo=capacitor&logoColor=white)](https://capacitorjs.com/)
-[![Android APK](https://img.shields.io/badge/APK-v1.2.8-3DDC84.svg?logo=android&logoColor=white)](https://github.com/luxie47/DailyTrade/releases/download/v1.2.8/DailyTrade.apk)
+[![Android APK](https://img.shields.io/badge/APK-v1.2.9-3DDC84.svg?logo=android&logoColor=white)](https://github.com/luxie47/DailyTrade/releases/download/v1.2.9/DailyTrade.apk)
 [![TradingView Charts](https://img.shields.io/badge/Powered%20By-Lightweight%20Charts-00e676.svg)](https://tradingview.github.io/lightweight-charts/)
 [![Get it on Orion Store](https://img.shields.io/badge/Get%20it%20on-Orion%20Store-7c3aed.svg)](https://rookieenough.github.io/Orion-Data/redirect.html?id=dailytrade)
 [![Build APK](https://github.com/luxie47/DailyTrade/actions/workflows/build-apk.yml/badge.svg)](.github/workflows/build-apk.yml)
@@ -20,7 +20,7 @@
 **A high-performance, minimalist paper trading simulator with real live market feeds and zero real money involved.**  
 *Practice trading stocks, crypto, crude oil, forex, index mutual funds, and fixed deposits with zero risk.*
 
-[Download v1.2.8 APK](https://github.com/luxie47/DailyTrade/releases/download/v1.2.8/DailyTrade.apk) • [Get it on Orion Store](https://rookieenough.github.io/Orion-Data/redirect.html?id=dailytrade) • [Featured Project: DailyFlow](https://dailyflow-luxie.vercel.app) • [Star on GitHub](https://github.com/luxie47/DailyTrade) • [Features](#-features) • [Data Flow](#-architecture--data-flow) • [Roadmap](#-secure-roadmap) • [Disclaimer](#-legal--financial-disclaimer)
+[Download v1.2.9 APK](https://github.com/luxie47/DailyTrade/releases/download/v1.2.9/DailyTrade.apk) • [Get it on Orion Store](https://rookieenough.github.io/Orion-Data/redirect.html?id=dailytrade) • [Featured Project: DailyFlow](https://dailyflow-luxie.vercel.app) • [Star on GitHub](https://github.com/luxie47/DailyTrade) • [Features](#-features) • [Data Flow](#-architecture--data-flow) • [Roadmap](#-secure-roadmap) • [Disclaimer](#-legal--financial-disclaimer)
 
 <br/>
 
@@ -79,10 +79,15 @@ If you find DailyTrade helpful or want to support ongoing open-source developmen
 ## ✨ Features
 
 * **100% Free & Open Source**: No sign-ups, no subscriptions, zero paywalls, zero telemetry.
+* **Exness-Style Lot Sizing Engine (v1.2.9)**: Institutional contract specifications (Forex: 100,000 units/lot with 1:100 leverage; Crypto: 1.0 unit/lot with 1:10 leverage; Commodities: 100 units/lot with 1:50 leverage; Stocks: 1.0 unit/lot with 1:5 leverage). Interactive quick-lot chips (`0.01` to `1.00`), micro-steppers, and dynamic pre-trade required margin previews.
+* **Real-Time Account Margin Health HUD (v1.2.9)**: Live 4-column metric strip displaying **Balance**, **Equity**, **Used Margin**, **Free Margin**, and **Margin Level %** with color-coded safety tiers (Green > 200%, Amber 100–200%, Red < 100%) to protect against margin calls.
+* **Two-Axis Interactive Chart Canvas (v1.2.9)**: Real-time live candle bucket formation, synchronized right-axis live price badge, and interactive two-way canvas scaling (drag right price scale to zoom height; drag bottom time axis or pinch to adjust width/bar spacing).
+* **Tactile Protective Orders & OCO Automation (v1.2.9)**: Visual dashed Stop Loss (red) and Take Profit (green) chart lines, tactile `<Shield />` action buttons with amber active glows and green protected states, plus automated One-Cancels-Other (OCO) cleanup.
+* **Enhanced Trade History & Commission Audit (v1.2.9)**: Detailed closed trade cards displaying execution lot size badges, broker fees, Entry → Exit execution path, and net realized P&L.
+* **Short Trading & Buy-to-Cover Engine (v1.2.8)**: Direction-aware short selling for all supported assets, margin-locked equity accounting, and direction-aware `SHORT` / `LONG` UI indicators.
 * **Dual Android Home Screen Widgets (v1.2.1)**: Native Android widgets with 1-tap launch integration:
   - **Tiny Ticker (2x1)**: Ultra-compact live asset tracker showing real-time price & green/red delta pill.
   - **OLED Portfolio HUD Card (2x2)**: Rounded OLED card displaying total equity, active position count, and dynamic P&L pills.
-* **Hardened Stop Loss & Target Engine (v1.2.1)**: Mathematical execution with true One-Cancels-the-Other (OCO) cleanup and active position protection editing directly from your portfolio.
 * **Native Push Notifications & Market Pulse (v1.2.1)**: Android 13+ compliant system alerts for trade executions, stop loss triggers, and periodic 12-hour portfolio market pulse notifications.
 * **Daily P&L Heatmap Calendar (v1.1.0)**: Full-width 20-week (140-day) GitHub-style calendar tracking daily profitability, day win rates, and interactive trade inspections.
 * **Segmented Trade Panel (v1.1.0)**: Live streaming Order Book with depth fill bars, 24h market metrics with range slider, and 1-tap quick execution pad.

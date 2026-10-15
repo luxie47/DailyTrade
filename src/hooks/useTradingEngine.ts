@@ -4,7 +4,7 @@ import { triggerAutoBackup } from '../services/backupService';
 import type { Currency } from '../types/account';
 import type { Position, ClosedTrade, Order } from '../types/trade';
 import { formatAssetPrice, getAssetUSDMultiplier } from '../utils/formatPrice';
-import { calculateUnrealizedPnL, calculateTotalEquity } from '../core/portfolio/calculations';
+import { calculateUnrealizedPnL, calculateTotalEquity, calculateTradeFee } from '../core/portfolio/calculations';
 import { validateMarketBuy, validateMarketSell, validateLimitOrder, shouldOrderFill } from '../core/trading/orders';
 
 export type NotificationCallback = (title: string, message: string, type: 'success' | 'error' | 'info') => void;
@@ -64,28 +64,32 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
 
       const mult = getAssetUSDMultiplier(pos.symbol);
       const isShort = pos.side === 'short';
-      const pnl = isShort
+      const grossPnl = isShort
         ? (pos.entryPriceUSD - currentPriceUSD) * pos.quantity * mult
         : (currentPriceUSD - pos.entryPriceUSD) * pos.quantity * mult;
+      const fee = calculateTradeFee(pos.lot, pos.symbol);
+      const netPnl = grossPnl - fee;
       const marginCost = pos.entryPriceUSD * pos.quantity * mult;
-      const proceeds = isShort ? Math.max(0, marginCost + pnl) : currentPriceUSD * pos.quantity * mult;
+      const proceeds = isShort ? Math.max(0, marginCost + netPnl) : currentPriceUSD * pos.quantity * mult - fee;
       const trade: ClosedTrade = {
         id: crypto.randomUUID(),
         accountId: prev.activeAccountId,
         symbol: pos.symbol,
         side: pos.side ?? 'long',
         quantity: pos.quantity,
+        lot: pos.lot,
+        commissionUSD: fee,
         entryPriceUSD: pos.entryPriceUSD,
         exitPriceUSD: currentPriceUSD,
-        realizedPnLUSD: pnl,
+        realizedPnLUSD: netPnl,
         entryTime: pos.entryTime,
         exitTime: Date.now(),
       };
       const acc = prev.accounts.find(a => a.id === prev.activeAccountId) ?? prev.accounts[0];
       onNotify?.(
-        pnl >= 0 ? 'Profitable Trade Closed' : 'Trade Closed',
-        `${pos.symbol}: ${pnl >= 0 ? '+' : ''}${formatCurrency(pnl, acc.currency)}`,
-        pnl >= 0 ? 'success' : 'error'
+        netPnl >= 0 ? 'Profitable Trade Closed' : 'Trade Closed',
+        `${pos.symbol}: ${netPnl >= 0 ? '+' : ''}${formatCurrency(netPnl, acc.currency)} (Fee: ${formatCurrency(fee, acc.currency)})`,
+        netPnl >= 0 ? 'success' : 'error'
       );
       // Cancel paired SL/TP pending orders for this position
       const isPosOrder = (o: Order) =>
@@ -110,16 +114,19 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
     quantity: number,
     priceUSD: number,
     stopLoss?: number,
-    takeProfit?: number
+    takeProfit?: number,
+    lot?: number
   ): string | null => {
     // If holding an open SHORT position in this symbol, buying acts as Buy-to-Cover (partial or full)
     const existingShort = positions.find(p => p.symbol === symbol && p.side === 'short');
     if (existingShort) {
       const coverQty = Math.min(quantity, existingShort.quantity);
       const mult = getAssetUSDMultiplier(symbol);
-      const pnl = (existingShort.entryPriceUSD - priceUSD) * coverQty * mult;
+      const fee = calculateTradeFee(existingShort.lot, symbol);
+      const grossPnl = (existingShort.entryPriceUSD - priceUSD) * coverQty * mult;
+      const netPnl = grossPnl - fee;
       const marginCost = existingShort.entryPriceUSD * coverQty * mult;
-      const proceeds = Math.max(0, marginCost + pnl);
+      const proceeds = Math.max(0, marginCost + netPnl);
       const isFullClose = coverQty >= existingShort.quantity;
 
       setState(prev => {
@@ -129,9 +136,11 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
           symbol: existingShort.symbol,
           side: 'short',
           quantity: coverQty,
+          lot: existingShort.lot,
+          commissionUSD: fee,
           entryPriceUSD: existingShort.entryPriceUSD,
           exitPriceUSD: priceUSD,
-          realizedPnLUSD: pnl,
+          realizedPnLUSD: netPnl,
           entryTime: existingShort.entryTime,
           exitTime: Date.now(),
         };
@@ -154,9 +163,9 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
 
       const acc = state.accounts.find(a => a.id === state.activeAccountId) ?? state.accounts[0];
       onNotify?.(
-        pnl >= 0 ? 'Short Covered (Profit)' : 'Short Covered (Loss)',
-        `Covered ${coverQty} ${symbol} @ ${formatAssetPrice(priceUSD, symbol)} (${pnl >= 0 ? '+' : ''}${formatCurrency(pnl, acc.currency)})`,
-        pnl >= 0 ? 'success' : 'error'
+        netPnl >= 0 ? 'Short Covered (Profit)' : 'Short Covered (Loss)',
+        `Covered ${coverQty} ${symbol} @ ${formatAssetPrice(priceUSD, symbol)} (${netPnl >= 0 ? '+' : ''}${formatCurrency(netPnl, acc.currency)})`,
+        netPnl >= 0 ? 'success' : 'error'
       );
       return null;
     }
@@ -175,6 +184,7 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
         symbol,
         side: 'long',
         quantity,
+        lot,
         entryPriceUSD: priceUSD,
         entryTime: Date.now(),
         stopLoss,
@@ -184,12 +194,12 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
       const newOrders: Order[] = [];
       if (stopLoss) newOrders.push({
         id: crypto.randomUUID(), accountId: prev.activeAccountId,
-        symbol, side: 'sell', type: 'stop_loss', quantity,
+        symbol, side: 'sell', type: 'stop_loss', quantity, lot,
         limitPrice: stopLoss, positionId: posId, status: 'pending', createdAt: Date.now(),
       });
       if (takeProfit) newOrders.push({
         id: crypto.randomUUID(), accountId: prev.activeAccountId,
-        symbol, side: 'sell', type: 'take_profit', quantity,
+        symbol, side: 'sell', type: 'take_profit', quantity, lot,
         limitPrice: takeProfit, positionId: posId, status: 'pending', createdAt: Date.now(),
       });
       return {
@@ -199,7 +209,8 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
         orders: [...prev.orders, ...newOrders],
       };
     });
-    onNotify?.('Order Executed', `Bought ${quantity} ${symbol} @ ${formatAssetPrice(priceUSD, symbol)}`, 'success');
+    const sizeLabel = lot ? `${lot} lot` : `${quantity} units`;
+    onNotify?.('Order Executed', `Bought ${sizeLabel} ${symbol} @ ${formatAssetPrice(priceUSD, symbol)}`, 'success');
     return null;
   }, [activeAccount, positions, closePosition, setState, onNotify]);
 
@@ -209,7 +220,8 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
     quantity: number,
     priceUSD: number,
     stopLoss?: number,
-    takeProfit?: number
+    takeProfit?: number,
+    lot?: number
   ): string | null => {
     const pos = positions.find(p => p.symbol === symbol && (p.side === 'long' || !p.side));
     if (pos) {
@@ -217,8 +229,10 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
       if (!validation.valid) return validation.error ?? 'Invalid order';
 
       const mult = getAssetUSDMultiplier(symbol);
-      const proceeds = priceUSD * quantity * mult;
-      const pnl = (priceUSD - pos.entryPriceUSD) * quantity * mult;
+      const grossPnl = (priceUSD - pos.entryPriceUSD) * quantity * mult;
+      const fee = calculateTradeFee(pos.lot, symbol);
+      const netPnl = grossPnl - fee;
+      const proceeds = priceUSD * quantity * mult - fee;
       const isFullClose = quantity >= pos.quantity;
 
       setState(prev => {
@@ -228,9 +242,11 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
           symbol: pos.symbol,
           side: 'long',
           quantity,
+          lot: pos.lot,
+          commissionUSD: fee,
           entryPriceUSD: pos.entryPriceUSD,
           exitPriceUSD: priceUSD,
-          realizedPnLUSD: pnl,
+          realizedPnLUSD: netPnl,
           entryTime: pos.entryTime,
           exitTime: Date.now(),
         };
@@ -252,10 +268,11 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
       });
 
       const acc = state.accounts.find(a => a.id === state.activeAccountId) ?? state.accounts[0];
+      const sizeLabel = pos.lot ? `${pos.lot} lot` : `${quantity} units`;
       onNotify?.(
-        pnl >= 0 ? 'Sell Executed (Profit)' : 'Sell Executed (Loss)',
-        `Sold ${quantity} ${symbol} @ ${formatAssetPrice(priceUSD, symbol)} (${pnl >= 0 ? '+' : ''}${formatCurrency(pnl, acc.currency)})`,
-        pnl >= 0 ? 'success' : 'error'
+        netPnl >= 0 ? 'Sell Executed (Profit)' : 'Sell Executed (Loss)',
+        `Sold ${sizeLabel} ${symbol} @ ${formatAssetPrice(priceUSD, symbol)} (${netPnl >= 0 ? '+' : ''}${formatCurrency(netPnl, acc.currency)})`,
+        netPnl >= 0 ? 'success' : 'error'
       );
       return null;
     } else {
@@ -274,6 +291,7 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
           symbol,
           side: 'short',
           quantity,
+          lot,
           entryPriceUSD: priceUSD,
           entryTime: Date.now(),
           stopLoss,
@@ -282,12 +300,12 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
         const newOrders: Order[] = [];
         if (stopLoss) newOrders.push({
           id: crypto.randomUUID(), accountId: prev.activeAccountId,
-          symbol, side: 'buy', type: 'stop_loss', quantity,
+          symbol, side: 'buy', type: 'stop_loss', quantity, lot,
           limitPrice: stopLoss, positionId: posId, status: 'pending', createdAt: Date.now(),
         });
         if (takeProfit) newOrders.push({
           id: crypto.randomUUID(), accountId: prev.activeAccountId,
-          symbol, side: 'buy', type: 'take_profit', quantity,
+          symbol, side: 'buy', type: 'take_profit', quantity, lot,
           limitPrice: takeProfit, positionId: posId, status: 'pending', createdAt: Date.now(),
         });
         return {
@@ -297,7 +315,8 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
           orders: [...prev.orders, ...newOrders],
         };
       });
-      onNotify?.('Short Order Executed', `Short sold ${quantity} ${symbol} @ ${formatAssetPrice(priceUSD, symbol)}`, 'success');
+      const sizeLabel = lot ? `${lot} lot` : `${quantity} units`;
+      onNotify?.('Short Order Executed', `Short sold ${sizeLabel} ${symbol} @ ${formatAssetPrice(priceUSD, symbol)}`, 'success');
       return null;
     }
   }, [positions, activeAccount.cashUSD, state.accounts, state.activeAccountId, setState, onNotify]);
@@ -324,6 +343,7 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
           side: exitSide,
           type: 'stop_loss',
           quantity: pos.quantity,
+          lot: pos.lot,
           limitPrice: stopLoss,
           positionId,
           status: 'pending',
@@ -338,6 +358,7 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
           side: exitSide,
           type: 'take_profit',
           quantity: pos.quantity,
+          lot: pos.lot,
           limitPrice: takeProfit,
           positionId,
           status: 'pending',
@@ -357,7 +378,7 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
 
   // ── Limit Order ───────────────────────────────────────────────────────────
   const placeLimitOrder = useCallback((
-    symbol: string, side: 'buy' | 'sell', quantity: number, limitPrice: number
+    symbol: string, side: 'buy' | 'sell', quantity: number, limitPrice: number, lot?: number
   ): string | null => {
     const validation = validateLimitOrder(activeAccount.cashUSD, side, quantity, limitPrice, symbol);
     if (!validation.valid) return validation.error ?? 'Invalid order';
@@ -366,11 +387,12 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
       orders: [...prev.orders, {
         id: crypto.randomUUID(),
         accountId: prev.activeAccountId,
-        symbol, side, type: 'limit', quantity, limitPrice,
+        symbol, side, type: 'limit', quantity, lot, limitPrice,
         status: 'pending', createdAt: Date.now(),
       }],
     }));
-    onNotify?.('Limit Order Placed', `${side.toUpperCase()} ${quantity} ${symbol} @ ${formatAssetPrice(limitPrice, symbol)}`, 'info');
+    const sizeLabel = lot ? `${lot} lot` : `${quantity} units`;
+    onNotify?.('Limit Order Placed', `${side.toUpperCase()} ${sizeLabel} ${symbol} @ ${formatAssetPrice(limitPrice, symbol)}`, 'info');
     return null;
   }, [activeAccount, setState, onNotify]);
 
@@ -413,7 +435,9 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
           const trade: ClosedTrade = {
             id: crypto.randomUUID(), accountId: order.accountId, symbol: order.symbol,
             side: pos.side ?? 'long',
-            quantity: fillQty, entryPriceUSD: pos.entryPriceUSD, exitPriceUSD: price,
+            quantity: fillQty,
+            lot: pos.lot || order.lot,
+            entryPriceUSD: pos.entryPriceUSD, exitPriceUSD: price,
             realizedPnLUSD: pnl, entryTime: pos.entryTime, exitTime: Date.now(),
           };
           const accObj = updated.accounts.find(a => a.id === order.accountId);
@@ -473,11 +497,13 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
             positions: [...updated.positions, {
               id: crypto.randomUUID(), accountId: order.accountId,
               symbol: order.symbol, side: 'long', quantity: order.quantity,
+              lot: order.lot,
               entryPriceUSD: price, entryTime: Date.now(),
             }],
             orders: updated.orders.map(o => o.id === order.id ? { ...o, status: 'filled' as const, filledAt: Date.now(), filledPrice: price } : o),
           };
-          onNotify?.('Limit Buy Filled', `Bought ${order.quantity} ${order.symbol} @ ${formatAssetPrice(price, order.symbol)}`, 'success');
+          const sizeLabel = order.lot ? `${order.lot} lot` : `${order.quantity} units`;
+          onNotify?.('Limit Buy Filled', `Bought ${sizeLabel} ${order.symbol} @ ${formatAssetPrice(price, order.symbol)}`, 'success');
         }
       }
       return updated;

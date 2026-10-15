@@ -4,15 +4,17 @@ import type { Asset } from '../types/market';
 import type { Account } from '../types/account';
 import { formatCurrency } from '../services/storage';
 import { formatAssetPrice, getAssetUSDMultiplier } from '../utils/formatPrice';
+import { LotSelector } from './LotSelector';
+import { lotToUnits, unitsToLot, calculateRequiredMargin } from '../core/trading/lots';
 
 interface Props {
   asset: Asset;
   currentPrice: number;
   account: Account;
   positionQty?: number;
-  onMarketBuy: (qty: number, sl?: number, tp?: number) => string | null;
-  onMarketSell: (qty: number, sl?: number, tp?: number) => string | null;
-  onLimitOrder: (side: 'buy' | 'sell', qty: number, price: number) => string | null;
+  onMarketBuy: (qty: number, sl?: number, tp?: number, lot?: number) => string | null;
+  onMarketSell: (qty: number, sl?: number, tp?: number, lot?: number) => string | null;
+  onLimitOrder: (side: 'buy' | 'sell', qty: number, price: number, lot?: number) => string | null;
   onClose: () => void;
 }
 
@@ -20,7 +22,7 @@ type Tab = 'market' | 'limit';
 
 export function TradeModal({ asset, currentPrice, account, positionQty, onMarketBuy, onMarketSell, onLimitOrder, onClose }: Props) {
   const [tab, setTab] = useState<Tab>('market');
-  const [qty, setQty] = useState('');
+  const [lot, setLot] = useState<number>(0.01);
   const [limitPrice, setLimitPrice] = useState(currentPrice.toFixed(2));
   const [slEnabled, setSlEnabled] = useState(false);
   const [tpEnabled, setTpEnabled] = useState(false);
@@ -29,25 +31,28 @@ export function TradeModal({ asset, currentPrice, account, positionQty, onMarket
   const [error, setError] = useState<string | null>(null);
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
 
-  const quantityNum = parseFloat(qty) || 0;
   const execPrice = tab === 'market' ? currentPrice : parseFloat(limitPrice) || currentPrice;
-  const mult = getAssetUSDMultiplier(asset.symbol);
-  const cost = quantityNum * execPrice * mult;
+  const quantityNum = lotToUnits(lot, asset.symbol, asset.class);
+  const requiredMargin = calculateRequiredMargin(lot, execPrice, asset.symbol, asset.class);
   const hasPosition = positionQty != null && positionQty > 0;
 
-  const quickPct = (pct: number) => {
-    if (side === 'sell' && hasPosition) {
-      setQty((positionQty! * pct).toFixed(positionQty! < 1 ? 6 : 4));
-      return;
+  const quickLotClose = (pct: number) => {
+    if (hasPosition) {
+      const targetUnits = positionQty! * pct;
+      const targetLot = unitsToLot(targetUnits, asset.symbol, asset.class);
+      setLot(targetLot);
     }
-    if (execPrice <= 0) return;
-    const maxAffordable = account.cashUSD / (execPrice * mult);
-    setQty((maxAffordable * pct).toFixed(maxAffordable < 1 ? 6 : 4));
   };
 
   const handleTrade = () => {
     setError(null);
-    if (quantityNum <= 0) { setError('Enter a valid quantity'); return; }
+    if (lot <= 0 || isNaN(lot)) { setError('Enter a valid lot size'); return; }
+    if (quantityNum <= 0) { setError('Invalid trade quantity'); return; }
+
+    if (side === 'buy' && requiredMargin > account.cashUSD) {
+      setError(`Insufficient cash for required margin (${formatCurrency(requiredMargin, account.currency)})`);
+      return;
+    }
 
     let err: string | null = null;
     if (tab === 'market') {
@@ -56,16 +61,18 @@ export function TradeModal({ asset, currentPrice, account, positionQty, onMarket
           quantityNum,
           slEnabled && sl ? parseFloat(sl) : undefined,
           tpEnabled && tp ? parseFloat(tp) : undefined,
+          lot,
         );
       } else {
         err = onMarketSell(
           quantityNum,
           slEnabled && sl ? parseFloat(sl) : undefined,
           tpEnabled && tp ? parseFloat(tp) : undefined,
+          lot,
         );
       }
     } else {
-      err = onLimitOrder(side, quantityNum, parseFloat(limitPrice) || currentPrice);
+      err = onLimitOrder(side, quantityNum, parseFloat(limitPrice) || currentPrice, lot);
     }
     if (err) { setError(err); return; }
     onClose();
@@ -168,83 +175,89 @@ export function TradeModal({ asset, currentPrice, account, positionQty, onMarket
           </div>
         )}
 
-        {/* Quantity */}
-        <div className="col gap-1" style={{ marginBottom: 8 }}>
-          <label style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 600, letterSpacing: '0.02em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-            QUANTITY
-          </label>
-          <input
-            className="input"
-            type="number"
-            placeholder="0.00"
-            value={qty}
-            onChange={e => setQty(e.target.value)}
-            min="0"
-            step="any"
-          />
-        </div>
+        {/* Exness-Style Lot Selector */}
+        <LotSelector
+          lot={lot}
+          onChange={setLot}
+          price={execPrice}
+          symbol={asset.symbol}
+          assetClass={asset.class}
+          availableCashUSD={account.cashUSD}
+          userCurrency={account.currency}
+        />
 
-        {/* Quick % buttons */}
-        <div className="row gap-2" style={{ marginBottom: 12 }}>
-          {[0.25, 0.5, 0.75, 1].map(p => (
-            <button
-              key={p}
-              className="btn btn-outline flex-1"
-              style={{ fontSize: 10, padding: '4px 0' }}
-              onClick={() => quickPct(p)}
-            >
-              {p * 100}%
-            </button>
-          ))}
-        </div>
-
-        {/* Cost / Proceeds display */}
-        {quantityNum > 0 && (
-          <div className="row between" style={{ padding: '8px 12px', background: 'var(--bg-subtle)', border: '1px solid var(--border-dim)', marginBottom: 12 }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              {side === 'buy' ? 'TOTAL COST' : 'EST. PROCEEDS'}
-            </span>
-            <span
-              className="num font-bold"
-              style={{
-                fontSize: 14,
-                color: side === 'buy'
-                  ? (cost > account.cashUSD ? 'var(--color-bear)' : 'var(--text-primary)')
-                  : 'var(--color-bull)',
-              }}
-            >
-              {formatCurrency(cost, account.currency)}
-            </span>
+        {/* Position close helpers when selling existing position */}
+        {side === 'sell' && hasPosition && (
+          <div className="row gap-2" style={{ marginBottom: 12 }}>
+            {[0.25, 0.5, 0.75, 1].map(p => (
+              <button
+                key={p}
+                type="button"
+                className="btn btn-outline flex-1"
+                style={{ fontSize: 10, padding: '4px 0' }}
+                onClick={() => quickLotClose(p)}
+              >
+                {p === 1 ? 'ALL' : `${p * 100}%`}
+              </button>
+            ))}
           </div>
         )}
 
-        {/* SL / TP — market BUY only */}
-        {tab === 'market' && side === 'buy' && (
+        {/* SL / TP for Market Orders (Buy & Short) */}
+        {tab === 'market' && (
           <div className="col gap-2" style={{ marginBottom: 12 }}>
             {/* Stop Loss */}
             <div className="row gap-2" style={{ alignItems: 'center' }}>
               <button
+                type="button"
                 className={`btn ${slEnabled ? 'btn-bear' : 'btn-outline'}`}
                 style={{ fontSize: 10, padding: '4px 8px' }}
-                onClick={() => { setSlEnabled(!slEnabled); if (!sl) setSl((currentPrice * 0.95).toFixed(2)); }}
+                onClick={() => {
+                  setSlEnabled(!slEnabled);
+                  if (!sl) {
+                    const defaultSl = side === 'buy' ? currentPrice * 0.95 : currentPrice * 1.05;
+                    setSl(defaultSl.toFixed(2));
+                  }
+                }}
               >
                 <AlertTriangle size={10} /> SL
               </button>
               {slEnabled && (
-                <input className="input flex-1" type="number" placeholder="Stop price" value={sl} onChange={e => setSl(e.target.value)} step="any" />
+                <input
+                  className="input flex-1"
+                  type="number"
+                  placeholder="Stop price"
+                  value={sl}
+                  onChange={e => setSl(e.target.value)}
+                  step="any"
+                />
               )}
             </div>
             {/* Take Profit */}
             <div className="row gap-2" style={{ alignItems: 'center' }}>
               <button
+                type="button"
                 className={`btn ${tpEnabled ? 'btn-bull' : 'btn-outline'}`}
                 style={{ fontSize: 10, padding: '4px 8px', color: tpEnabled ? '#000' : undefined }}
-                onClick={() => { setTpEnabled(!tpEnabled); if (!tp) setTp((currentPrice * 1.05).toFixed(2)); }}
+                onClick={() => {
+                  setTpEnabled(!tpEnabled);
+                  if (!tp) {
+                    const defaultTp = side === 'buy' ? currentPrice * 1.05 : currentPrice * 0.95;
+                    setTp(defaultTp.toFixed(2));
+                  }
+                }}
               >
                 <Target size={10} /> TP
               </button>
               {tpEnabled && (
-                <input className="input flex-1" type="number" placeholder="Target price" value={tp} onChange={e => setTp(e.target.value)} step="any" />
+                <input
+                  className="input flex-1"
+                  type="number"
+                  placeholder="Target price"
+                  value={tp}
+                  onChange={e => setTp(e.target.value)}
+                  step="any"
+                />
               )}
             </div>
           </div>

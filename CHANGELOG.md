@@ -2,6 +2,20 @@
 
 All notable changes to DailyTrade documented in this file.
 
+## [1.2.9] - 2026-10-15
+
+### Added
+- **Exness-Style Lot Sizing Engine**: Introduced standard institutional contract specifications (Forex 100,000 units/lot with 1:100 leverage; Crypto 1.0 unit/lot with 1:10 leverage; Commodities 100 units/lot with 1:50 leverage; Stocks 1.0 unit/lot with 1:5 leverage). Added quick lot selector chips (`0.01` to `1.00`), micro-steppers, and pre-trade required margin previews across all order entry points.
+- **Real-Time Account Metrics & Margin Health**: Integrated an account header metric bar displaying live Balance, Equity, Used Margin, Free Margin, and Margin Level % with color-coded health indicators to safeguard positions against margin calls.
+- **Interactive Protective Order Controls**: Re-engineered Stop Loss and Take Profit with high-contrast tactile action buttons, visual `<Shield />` protection indicators, and an inline rapid stepper strip under open holdings.
+- **Enhanced Trade History Architecture**: Extended trade records to capture execution lot size, trading commission, Entry → Exit execution path, and net realized P&L without horizontal screen clipping on mobile screens.
+
+### Fixed
+- **Live Candle Formation & Price Scale Synchronization**: Anchored streaming ticks to the active timeframe bar bucket, eliminating distorted candlestick bar spacing and horizontal width stretching. Synchronized the live price line with the right-hand price scale badge in real-time.
+- **Pending Order Lifecycle & OCO Automation**: Ensured lot metadata is strictly preserved when modifying Stop Loss or Take Profit orders on existing holdings. Reinforced One-Cancels-Other (OCO) automation to cancel orphan protective orders when positions close.
+
+---
+
 ## [1.2.8] - 2026-10-13
 
 ### Added

@@ -11,3 +11,15 @@ Always leverage the Spec-Kit system located at:
 - **Zero Local Gradle Builds**: Local builds use `npm run build; npx cap sync android`. Cloud GitHub Actions builds APKs on tag push (`v*`).
 - **5-Point Release Sync**: Keep `package.json`, `android/app/build.gradle`, `CHANGELOG.md`, `README.md`, and assets strictly in sync.
 - **Atomic Verification**: Run `npx tsc --noEmit` after every atomic step.
+
+## 3. Gravitas Protocol (.agents/skills/gravitas)
+- **Always Active**: Follow Gravitas principles (`.agents/skills/gravitas/SKILL.md`) for all code, planning, and verification tasks.
+- **6 Invariants Enforced**:
+  1. Ground before mutating (read code, callers, types before editing).
+  2. Stay in declared write scope.
+  3. Evidence required for completion (run real verification, e.g. `npx tsc --noEmit`).
+  4. Never exact-retry a failure without strategy change.
+  5. Satisfy acceptance contract criteria.
+  6. Explicitly declare what cannot be verified.
+- **Output Standards**: Always provide "What Changed", "Evidence", and "Why".
+

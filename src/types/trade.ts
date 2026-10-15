@@ -11,6 +11,7 @@ export interface Order {
   side: OrderSide;
   type: OrderType;
   quantity: number;        // number of units
+  lot?: number;            // Exness lot size (e.g. 0.01, 0.10, 1.00)
   limitPrice?: number;     // USD — set for limit orders, SL, TP
   stopLoss?: number;       // USD
   takeProfit?: number;     // USD
@@ -27,6 +28,7 @@ export interface Position {
   symbol: string;
   side?: 'long' | 'short'; // Defaults to 'long'
   quantity: number;
+  lot?: number;            // Selected lot size
   entryPriceUSD: number;
   entryTime: number;
   stopLoss?: number;       // Attached Stop Loss price
@@ -39,9 +41,12 @@ export interface ClosedTrade {
   symbol: string;
   side?: 'long' | 'short';
   quantity: number;
+  lot?: number;            // Executed lot size
+  commissionUSD?: number;  // Trading commission / charges
   entryPriceUSD: number;
   exitPriceUSD: number;
-  realizedPnLUSD: number;
+  realizedPnLUSD: number;  // Net realized PnL
   entryTime: number;
   exitTime: number;
 }
+

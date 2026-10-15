@@ -85,6 +85,8 @@ export function TradingViewChart({
       upColor: '#00e676', downColor: '#ff3d71',
       borderUpColor: '#00e676', borderDownColor: '#ff3d71',
       wickUpColor: '#00e676', wickDownColor: '#ff3d71',
+      lastValueVisible: false,
+      priceLineVisible: false,
     });
 
     const as = chart.addSeries(AreaSeries, {
@@ -92,6 +94,8 @@ export function TradingViewChart({
       topColor: 'rgba(244,244,245,0.18)',
       bottomColor: 'rgba(244,244,245,0)',
       lineWidth: 2, visible: false,
+      lastValueVisible: false,
+      priceLineVisible: false,
     });
 
     const vs = chart.addSeries(HistogramSeries, {
@@ -117,10 +121,12 @@ export function TradingViewChart({
   }, []);
 
   const lastCandleRef = useRef<Candle | null>(null);
+  const fittedKeyRef  = useRef<string>('');
 
   // ── Reset live candle ref on timeframe change ────────────────────────────
   useEffect(() => {
     lastCandleRef.current = null;
+    fittedKeyRef.current = '';
   }, [timeframe]);
 
   // ── Reset state on symbol change ──────────────────────────────────────────
@@ -138,6 +144,7 @@ export function TradingViewChart({
       tpLineRef.current = null;
     }
     lastCandleRef.current = null;
+    fittedKeyRef.current = '';
     const precision = symbol.includes('=X') && !symbol.includes('USDINR') ? 4 : 2;
     candleRef.current?.applyOptions({
       priceFormat: {
@@ -180,6 +187,14 @@ export function TradingViewChart({
         unique.push(c);
       }
     }
+    if (livePrice && livePrice > 0 && unique.length > 0) {
+      const last = unique[unique.length - 1];
+      if (last.close > 0 && Math.abs(livePrice - last.close) / last.close <= 0.5) {
+        last.high = Math.max(last.high, livePrice);
+        last.low  = Math.min(last.low, livePrice);
+        last.close = livePrice;
+      }
+    }
     lastCandleRef.current = { ...unique[unique.length - 1] };
     const cdData = unique.map(c => ({ time: c.time as Time, open: c.open, high: c.high, low: c.low, close: c.close }));
     const aData  = unique.map(c => ({ time: c.time as Time, value: c.close }));
@@ -192,34 +207,45 @@ export function TradingViewChart({
       areaRef.current?.setData(aData);
       volRef.current?.setData(vData);
     } catch { /* ok */ }
-    if (unique.length > 60) {
-      chartRef.current?.timeScale().fitContent();
-    } else {
+
+    // Position chart once per symbol/timeframe; do not fitContent on every background refresh
+    const key = `${symbol}-${timeframe}`;
+    if (fittedKeyRef.current !== key) {
+      fittedKeyRef.current = key;
       chartRef.current?.timeScale().applyOptions({ barSpacing: 7, rightOffset: 5 });
       chartRef.current?.timeScale().scrollToRealTime();
     }
-  }, [candles]);
+  }, [candles, symbol, timeframe]);
 
   // ── Tick live price onto active candle ───────────────────────────────────
   useEffect(() => {
-    if (!livePrice) return;
+    if (typeof livePrice !== 'number' || !isFinite(livePrice) || livePrice <= 0) return;
     const cur = lastCandleRef.current;
     if (!cur) return;
 
+    // Price sanity check: ignore erratic or zero spikes that differ by > 50% from active close
+    if (cur.close > 0 && Math.abs(livePrice - cur.close) / cur.close > 0.5) {
+      return;
+    }
+
     const stepSec = TF_SECONDS[timeframe] || 300;
     const nowSec = Math.floor(Date.now() / 1000);
-    const alignedNow = Math.floor(nowSec / stepSec) * stepSec;
     const curTime = typeof cur.time === 'number' ? cur.time : Math.floor(new Date(cur.time as string).getTime() / 1000);
-    const curAligned = Math.floor(curTime / stepSec) * stepSec;
+
+    // If historical data is behind by > 2 candle steps (closed market, weekend, delayed feed),
+    // update the active candle in-place rather than spawning a distant future candle that stretches the scale.
+    const isHistoricalStale = (nowSec - curTime) > (stepSec * 2);
+    const isNewBarDue = !isHistoricalStale && (nowSec >= curTime + stepSec);
 
     try {
-      if (alignedNow > curAligned) {
-        // Crossed into a new timeframe candle boundary: spawn fresh aligned bar
+      if (isNewBarDue) {
+        // Aligned bar time for next bucket
+        const nextTime = curTime + stepSec;
         const newCandle: Candle = {
-          time: alignedNow,
-          open: livePrice,
-          high: livePrice,
-          low: livePrice,
+          time: nextTime,
+          open: cur.close,
+          high: Math.max(cur.close, livePrice),
+          low:  Math.min(cur.close, livePrice),
           close: livePrice,
         };
         lastCandleRef.current = newCandle;
@@ -227,12 +253,12 @@ export function TradingViewChart({
           time: newCandle.time as Time,
           open: newCandle.open,
           high: newCandle.high,
-          low: newCandle.low,
+          low:  newCandle.low,
           close: newCandle.close,
         });
         areaRef.current?.update({ time: newCandle.time as Time, value: livePrice });
       } else {
-        // Still in active bar: update high/low/close without stretching width
+        // Still in active bar: update high/low/close smoothly without altering time or stretching bar
         cur.high  = Math.max(cur.high, livePrice);
         cur.low   = Math.min(cur.low, livePrice);
         cur.close = livePrice;
@@ -247,23 +273,41 @@ export function TradingViewChart({
         areaRef.current?.update({ time: cur.time as Time, value: livePrice });
       }
     } catch {
-      // Ignore time-order collision on fast websocket ticks
+      // Ignore occasional time-order collision on fast ticks
     }
 
     // ── Current price dotted line (green on up, red on down) ──────────────
     if (candleRef.current) {
-      if (curLineRef.current) {
-        try { candleRef.current.removePriceLine(curLineRef.current); } catch { /* ok */ }
-      }
       const isUp = livePrice >= cur.open;
-      curLineRef.current = candleRef.current.createPriceLine({
-        price: livePrice,
-        color: isUp ? 'rgba(0, 230, 118, 0.85)' : 'rgba(255, 61, 113, 0.85)',
-        lineWidth: 1,
-        lineStyle: LineStyle.Dotted,
-        axisLabelVisible: false,
-        title: '',
-      });
+      const lineColor = isUp ? '#00e676' : '#ff3d71';
+      if (curLineRef.current) {
+        try {
+          curLineRef.current.applyOptions({
+            price: livePrice,
+            color: lineColor,
+            axisLabelVisible: true,
+          });
+        } catch {
+          try { candleRef.current.removePriceLine(curLineRef.current); } catch { /* ok */ }
+          curLineRef.current = candleRef.current.createPriceLine({
+            price: livePrice,
+            color: lineColor,
+            lineWidth: 1,
+            lineStyle: LineStyle.Dotted,
+            axisLabelVisible: true,
+            title: '',
+          });
+        }
+      } else {
+        curLineRef.current = candleRef.current.createPriceLine({
+          price: livePrice,
+          color: lineColor,
+          lineWidth: 1,
+          lineStyle: LineStyle.Dotted,
+          axisLabelVisible: true,
+          title: '',
+        });
+      }
     }
   }, [livePrice, timeframe]);
 

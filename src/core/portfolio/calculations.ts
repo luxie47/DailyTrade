@@ -1,5 +1,6 @@
 import type { Position, ClosedTrade } from '../../types/trade';
 import { getAssetUSDMultiplier } from '../../utils/formatPrice';
+import { calculateRequiredMargin, unitsToLot } from '../trading/lots';
 
 export interface PortfolioStats {
   totalTrades: number;
@@ -10,6 +11,64 @@ export interface PortfolioStats {
   grossProfitUSD: number;
   grossLossUSD: number;
   profitFactor: number;
+}
+
+export interface LiveAccountMetrics {
+  balanceUSD: number;
+  equityUSD: number;
+  unrealizedPnLUSD: number;
+  usedMarginUSD: number;
+  freeMarginUSD: number;
+  marginLevelPct: number;
+}
+
+/**
+ * Calculates standard broker trade fee / commission based on lot size.
+ * Rate: $2.00 per standard 1.00 lot (min $0.02).
+ */
+export function calculateTradeFee(lot?: number, symbol?: string): number {
+  const safeLot = lot && lot > 0 ? lot : 0.01;
+  const fee = safeLot * 2.0;
+  return Number(Math.max(0.02, fee).toFixed(2));
+}
+
+/**
+ * Calculates margin required for a single active position.
+ */
+export function calculatePositionMargin(position: Position): number {
+  const lot = position.lot ?? unitsToLot(position.quantity, position.symbol);
+  return calculateRequiredMargin(lot, position.entryPriceUSD, position.symbol);
+}
+
+/**
+ * Calculates complete live account metrics (Balance, Equity, Margin, Free Margin, Margin Level).
+ */
+export function calculateLiveAccountMetrics(
+  cashUSD: number,
+  positions: Position[],
+  prices: Record<string, number>
+): LiveAccountMetrics {
+  const safeCash = Math.max(0, isNaN(cashUSD) ? 0 : cashUSD);
+  // In the spot-deduction model, cashUSD is uninvested cash; total balance includes open position capital
+  const investedCapital = positions.reduce((sum, p) => {
+    const mult = getAssetUSDMultiplier(p.symbol);
+    return sum + (p.entryPriceUSD * p.quantity * mult);
+  }, 0);
+  const balanceUSD = Number((safeCash + investedCapital).toFixed(2));
+  const unrealizedPnLUSD = calculateUnrealizedPnL(positions, prices);
+  const equityUSD = Math.max(0, Number(calculateTotalEquity(safeCash, positions, prices).toFixed(2)));
+  const usedMarginUSD = Number(positions.reduce((sum, p) => sum + calculatePositionMargin(p), 0).toFixed(2));
+  const freeMarginUSD = Math.max(0, Number((equityUSD - usedMarginUSD).toFixed(2)));
+  const marginLevelPct = usedMarginUSD > 0 ? Number(((equityUSD / usedMarginUSD) * 100).toFixed(1)) : 0;
+
+  return {
+    balanceUSD,
+    equityUSD,
+    unrealizedPnLUSD,
+    usedMarginUSD,
+    freeMarginUSD,
+    marginLevelPct,
+  };
 }
 
 /**

@@ -28,7 +28,7 @@ import {
   subscribeLiveQuote, subscribeAllQuotes, startSyntheticTicks,
 } from './services/marketData';
 import type { Candle } from './types/market';
-import { Download } from 'lucide-react';
+import { Download, Shield } from 'lucide-react';
 import { formatAssetPrice, getAssetUSDMultiplier } from './utils/formatPrice';
 import { syncAndroidWidget } from './native/widgetBridge';
 import { TIMERS, STORAGE_KEYS } from './config/constants';
@@ -71,6 +71,10 @@ export default function App() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [accountModalView, setAccountModalView] = useState<'list' | 'create' | 'about'>('list');
+  // SL/TP inline edit state (per position)
+  const [sltpEditId, setSltpEditId] = useState<string | null>(null);
+  const [editSl, setEditSl] = useState('');
+  const [editTp, setEditTp] = useState('');
 
   // Check for auto-restore after app update / fresh webview state
   useEffect(() => {
@@ -394,7 +398,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Open positions for this asset */}
+              {/* Open positions for this asset — with inline SL/TP edit strip */}
               {engine.positions.filter(p => p.symbol === selectedAsset.symbol).map(pos => {
                 const cur = prices[pos.symbol] ?? pos.entryPriceUSD;
                 const isShort = pos.side === 'short';
@@ -402,28 +406,206 @@ export default function App() {
                 const diff = isShort ? (pos.entryPriceUSD - cur) : (cur - pos.entryPriceUSD);
                 const pnl = diff * pos.quantity * mult;
                 const isUp = pnl >= 0;
+                const isEditOpen = sltpEditId === pos.id;
+
+                // Price step scales to asset magnitude — BTC=$50, mid-cap=$1, forex=0.0001
+                const priceStep = cur >= 50000 ? 50 : cur >= 10000 ? 10 : cur >= 1000 ? 5 : cur >= 100 ? 1 : cur >= 1 ? 0.01 : 0.0001;
+
+                const openEdit = () => {
+                  setSltpEditId(pos.id);
+                  setEditSl(pos.stopLoss ? pos.stopLoss.toFixed(pos.stopLoss < 1 ? 5 : 2) : '');
+                  setEditTp(pos.takeProfit ? pos.takeProfit.toFixed(pos.takeProfit < 1 ? 5 : 2) : '');
+                };
+                const closeEdit = () => setSltpEditId(null);
+
+                const confirmEdit = () => {
+                  const sl = editSl ? parseFloat(editSl) : undefined;
+                  const tp = editTp ? parseFloat(editTp) : undefined;
+                  if ((sl !== undefined && isNaN(sl)) || (tp !== undefined && isNaN(tp))) return;
+                  engine.updatePositionSLTP(pos.id, sl, tp);
+                  setSltpEditId(null);
+                };
+
+                const clearSLTP = () => {
+                  engine.updatePositionSLTP(pos.id, undefined, undefined);
+                  setSltpEditId(null);
+                };
+
+                // ± stepper helpers
+                const stepSl = (dir: 1 | -1) => {
+                  const base = editSl ? parseFloat(editSl) : (pos.stopLoss ?? cur);
+                  const next = Math.max(0, base + dir * priceStep);
+                  setEditSl(next.toFixed(next < 1 ? 5 : 2));
+                };
+                const stepTp = (dir: 1 | -1) => {
+                  const base = editTp ? parseFloat(editTp) : (pos.takeProfit ?? cur);
+                  const next = Math.max(0, base + dir * priceStep);
+                  setEditTp(next.toFixed(next < 1 ? 5 : 2));
+                };
+
                 return (
-                  <div key={pos.id} className="row between" style={{ padding: '8px 10px', background: 'var(--bg-subtle)', border: '1px solid var(--border-dim)', marginTop: 8 }}>
-                    <div className="row gap-2" style={{ alignItems: 'center' }}>
-                      <span className={`badge ${isShort ? 'badge-bear' : 'badge-bull'}`} style={{ fontSize: 9 }}>
-                        {isShort ? 'SHORT' : 'LONG'}
-                      </span>
-                      <span className="mono" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                        {pos.quantity.toFixed(pos.quantity < 1 ? 6 : 4)} @ {formatAssetPrice(pos.entryPriceUSD, pos.symbol)}
-                      </span>
+                  <div key={pos.id} style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border-dim)', marginTop: 8 }}>
+                    {/* Row 1: position summary */}
+                    <div className="row between" style={{ padding: '8px 10px', alignItems: 'center' }}>
+                      <div className="row gap-2" style={{ alignItems: 'center', flex: 1, minWidth: 0 }}>
+                        <span className={`badge ${isShort ? 'badge-bear' : 'badge-bull'}`} style={{ fontSize: 9, flexShrink: 0 }}>
+                          {isShort ? 'SHORT' : 'LONG'}
+                        </span>
+                        {pos.lot && (
+                          <span className="badge badge-neutral" style={{ fontSize: 9, flexShrink: 0 }}>
+                            {pos.lot} LOT
+                          </span>
+                        )}
+                        <span className="mono" style={{ fontSize: 11, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          @ {formatAssetPrice(pos.entryPriceUSD, pos.symbol)}
+                        </span>
+                      </div>
+                      <div className="row gap-2" style={{ alignItems: 'center', flexShrink: 0 }}>
+                        <span className="num font-bold" style={{ fontSize: 12, color: isUp ? 'var(--color-bull)' : 'var(--color-bear)' }}>
+                          {isUp ? '+' : ''}{formatCurrency(pnl, engine.activeAccount.currency, true)}
+                        </span>
+                        <button
+                          className="btn"
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            letterSpacing: '0.04em',
+                            padding: '4px 9px',
+                            height: 26,
+                            background: isEditOpen
+                              ? 'rgba(255, 179, 0, 0.18)'
+                              : (pos.stopLoss || pos.takeProfit)
+                                ? 'rgba(0, 230, 118, 0.12)'
+                                : 'rgba(255, 255, 255, 0.08)',
+                            border: isEditOpen
+                              ? '1px solid var(--color-gold)'
+                              : (pos.stopLoss || pos.takeProfit)
+                                ? '1px solid rgba(0, 230, 118, 0.45)'
+                                : '1px solid var(--border-mid)',
+                            color: isEditOpen
+                              ? 'var(--color-gold)'
+                              : (pos.stopLoss || pos.takeProfit)
+                                ? 'var(--color-bull)'
+                                : 'var(--text-primary)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
+                            transition: 'all 0.12s ease',
+                          }}
+                          onClick={isEditOpen ? closeEdit : openEdit}
+                          title="Edit Stop Loss & Take Profit"
+                        >
+                          <Shield size={11} strokeWidth={2.4} />
+                          <span>SL/TP</span>
+                        </button>
+                        <button
+                          className="btn btn-bear"
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            letterSpacing: '0.04em',
+                            padding: '4px 10px',
+                            height: 26,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            boxShadow: '0 1px 3px rgba(255,61,113,0.3)',
+                          }}
+                          onClick={() => engine.closePosition(pos.id, cur)}
+                        >
+                          CLOSE
+                        </button>
+                      </div>
                     </div>
-                    <div className="row gap-2">
-                      <span className="num font-bold" style={{ fontSize: 12, color: isUp ? 'var(--color-bull)' : 'var(--color-bear)' }}>
-                        {isUp ? '+' : ''}{formatCurrency(pnl, engine.activeAccount.currency, true)}
-                      </span>
-                      <button
-                        className="btn btn-bear"
-                        style={{ fontSize: 10, padding: '3px 8px' }}
-                        onClick={() => engine.closePosition(pos.id, cur)}
-                      >
-                        CLOSE
-                      </button>
-                    </div>
+
+                    {/* Row 2: SL/TP badges (always visible if set) */}
+                    {!isEditOpen && (pos.stopLoss || pos.takeProfit) && (
+                      <div className="row" style={{ padding: '0 10px 7px', gap: 8, alignItems: 'center' }}>
+                        {pos.stopLoss ? (
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600, color: 'var(--color-bear)', background: 'var(--bg-bear)', border: '1px solid rgba(255,61,113,0.3)', padding: '1px 6px', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                            SL {formatAssetPrice(pos.stopLoss, pos.symbol)}
+                          </span>
+                        ) : null}
+                        {pos.takeProfit ? (
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600, color: 'var(--color-bull)', background: 'var(--bg-bull)', border: '1px solid rgba(0,230,118,0.3)', padding: '1px 6px', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                            TP {formatAssetPrice(pos.takeProfit, pos.symbol)}
+                          </span>
+                        ) : null}
+                      </div>
+                    )}
+
+                    {/* Row 3: Inline SL/TP edit strip (expands on tap) */}
+                    {isEditOpen && (
+                      <div style={{ borderTop: '1px solid var(--border-dim)', padding: '10px 10px 12px' }}>
+                        {/* SL row */}
+                        <div style={{ marginBottom: 8 }}>
+                          <span style={{ fontFamily: 'var(--font-ui)', fontSize: 9.5, fontWeight: 700, color: 'var(--color-bear)', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'block', marginBottom: 5 }}>
+                            Stop Loss
+                          </span>
+                          <div className="row" style={{ gap: 6, alignItems: 'center' }}>
+                            <button
+                              style={{ minWidth: 40, height: 40, background: 'var(--bg-card)', border: '1px solid var(--border-dim)', color: 'var(--color-bear)', fontSize: 20, fontWeight: 300, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, borderRadius: 0 }}
+                              onClick={() => stepSl(-1)}
+                            >−</button>
+                            <input
+                              type="number"
+                              value={editSl}
+                              onChange={e => setEditSl(e.target.value)}
+                              placeholder={`e.g. ${(cur * (isShort ? 1.02 : 0.98)).toFixed(cur < 1 ? 5 : 2)}`}
+                              style={{ flex: 1, height: 40, background: 'var(--bg-card)', border: '1px solid var(--border-dim)', color: 'var(--color-bear)', fontFamily: 'var(--font-mono)', fontSize: 13, textAlign: 'center', outline: 'none', borderRadius: 0, padding: '0 4px' }}
+                            />
+                            <button
+                              style={{ minWidth: 40, height: 40, background: 'var(--bg-card)', border: '1px solid var(--border-dim)', color: 'var(--color-bear)', fontSize: 20, fontWeight: 300, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, borderRadius: 0 }}
+                              onClick={() => stepSl(1)}
+                            >+</button>
+                          </div>
+                        </div>
+
+                        {/* TP row */}
+                        <div style={{ marginBottom: 10 }}>
+                          <span style={{ fontFamily: 'var(--font-ui)', fontSize: 9.5, fontWeight: 700, color: 'var(--color-bull)', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'block', marginBottom: 5 }}>
+                            Take Profit
+                          </span>
+                          <div className="row" style={{ gap: 6, alignItems: 'center' }}>
+                            <button
+                              style={{ minWidth: 40, height: 40, background: 'var(--bg-card)', border: '1px solid var(--border-dim)', color: 'var(--color-bull)', fontSize: 20, fontWeight: 300, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, borderRadius: 0 }}
+                              onClick={() => stepTp(-1)}
+                            >−</button>
+                            <input
+                              type="number"
+                              value={editTp}
+                              onChange={e => setEditTp(e.target.value)}
+                              placeholder={`e.g. ${(cur * (isShort ? 0.98 : 1.02)).toFixed(cur < 1 ? 5 : 2)}`}
+                              style={{ flex: 1, height: 40, background: 'var(--bg-card)', border: '1px solid var(--border-dim)', color: 'var(--color-bull)', fontFamily: 'var(--font-mono)', fontSize: 13, textAlign: 'center', outline: 'none', borderRadius: 0, padding: '0 4px' }}
+                            />
+                            <button
+                              style={{ minWidth: 40, height: 40, background: 'var(--bg-card)', border: '1px solid var(--border-dim)', color: 'var(--color-bull)', fontSize: 20, fontWeight: 300, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, borderRadius: 0 }}
+                              onClick={() => stepTp(1)}
+                            >+</button>
+                          </div>
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="row" style={{ gap: 6 }}>
+                          <button
+                            className="btn btn-bull"
+                            style={{ flex: 1, fontSize: 11, fontWeight: 700, padding: '10px 0', letterSpacing: '0.04em' }}
+                            onClick={confirmEdit}
+                          >
+                            CONFIRM
+                          </button>
+                          {(pos.stopLoss || pos.takeProfit) && (
+                            <button
+                              className="btn btn-ghost"
+                              style={{ fontSize: 11, padding: '10px 14px', color: 'var(--text-muted)', letterSpacing: '0.04em' }}
+                              onClick={clearSLTP}
+                            >
+                              CLEAR
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -515,9 +697,9 @@ export default function App() {
           currentPrice={curPrice}
           account={engine.activeAccount}
           positionQty={engine.positions.find(p => p.symbol === selectedAsset.symbol)?.quantity}
-          onMarketBuy={(qty, sl, tp) => engine.marketBuy(selectedAsset.symbol, qty, curPrice, sl, tp)}
-          onMarketSell={(qty, sl, tp) => engine.marketSell(selectedAsset.symbol, qty, curPrice, sl, tp)}
-          onLimitOrder={(side, qty, price) => engine.placeLimitOrder(selectedAsset.symbol, side, qty, price)}
+          onMarketBuy={(qty, sl, tp, lot) => engine.marketBuy(selectedAsset.symbol, qty, curPrice, sl, tp, lot)}
+          onMarketSell={(qty, sl, tp, lot) => engine.marketSell(selectedAsset.symbol, qty, curPrice, sl, tp, lot)}
+          onLimitOrder={(side, qty, price, lot) => engine.placeLimitOrder(selectedAsset.symbol, side, qty, price, lot)}
           onClose={() => setShowTradeModal(false)}
         />
       )}

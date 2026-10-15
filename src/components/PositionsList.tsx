@@ -5,6 +5,7 @@ import type { Account } from '../types/account';
 import type { Asset } from '../types/market';
 import { formatCurrency, formatPct } from '../services/storage';
 import { formatAssetPrice, getAssetUSDMultiplier } from '../utils/formatPrice';
+import { calculateLiveAccountMetrics } from '../core/portfolio/calculations';
 import { ASSET_MAP, ASSETS } from '../data/assets';
 
 interface Props {
@@ -24,12 +25,7 @@ export function PositionsList({ positions, orders, history, prices, account, onC
   const [sltpPos, setSltpPos] = useState<Position | null>(null);
   const [modalSl, setModalSl] = useState('');
   const [modalTp, setModalTp] = useState('');
-  const totalUnrPnL = positions.reduce((sum, p) => {
-    const cur = prices[p.symbol] ?? p.entryPriceUSD;
-    const isShort = p.side === 'short';
-    const diff = isShort ? (p.entryPriceUSD - cur) : (cur - p.entryPriceUSD);
-    return sum + diff * p.quantity * getAssetUSDMultiplier(p.symbol);
-  }, 0);
+  const metrics = calculateLiveAccountMetrics(account.cashUSD, positions, prices);
   const totalRealPnL = history.reduce((sum, h) => sum + h.realizedPnLUSD, 0);
   const winTrades = history.filter(h => h.realizedPnLUSD > 0).length;
   const winRate = history.length > 0 ? (winTrades / history.length) * 100 : 0;
@@ -52,22 +48,76 @@ export function PositionsList({ positions, orders, history, prices, account, onC
 
   return (
     <div className="col">
-      {/* Stats row */}
-      <div className="row" style={{ borderBottom: '1px solid var(--border-dim)', background: 'var(--bg-card)' }}>
-        {[
-          { label: 'UNREALISED', value: formatCurrency(totalUnrPnL, account.currency, true), up: totalUnrPnL >= 0 },
-          { label: 'REALISED',   value: formatCurrency(totalRealPnL, account.currency, true), up: totalRealPnL >= 0 },
-          { label: 'WIN RATE',   value: `${winRate.toFixed(0)}%`, up: winRate > 50 },
-        ].map(s => (
-          <div key={s.label} className="col" style={{ flex: 1, alignItems: 'center', padding: '10px 4px', borderRight: '1px solid var(--border-dim)' }}>
-            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10, fontWeight: 600, letterSpacing: '0.04em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-              {s.label}
+      {/* Live Account Information HUD */}
+      <div style={{ borderBottom: '1px solid var(--border-dim)', background: 'var(--bg-card)' }}>
+        {/* Tier 1: Real-Time Financials */}
+        <div className="row" style={{ borderBottom: '1px solid var(--border-dim)' }}>
+          <div className="col" style={{ flex: 1, alignItems: 'center', padding: '9px 4px', borderRight: '1px solid var(--border-dim)' }}>
+            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.04em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+              BALANCE
             </span>
-            <span className="num font-bold" style={{ fontSize: 13, color: s.up ? 'var(--color-bull)' : 'var(--color-bear)', marginTop: 2 }}>
-              {s.value}
+            <span className="mono font-bold" style={{ fontSize: 13, color: 'var(--text-primary)', marginTop: 2 }}>
+              {formatCurrency(metrics.balanceUSD, account.currency)}
             </span>
           </div>
-        ))}
+          <div className="col" style={{ flex: 1, alignItems: 'center', padding: '9px 4px', borderRight: '1px solid var(--border-dim)' }}>
+            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.04em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+              EQUITY
+            </span>
+            <span className="mono font-bold" style={{ fontSize: 13, color: 'var(--text-primary)', marginTop: 2 }}>
+              {formatCurrency(metrics.equityUSD, account.currency)}
+            </span>
+          </div>
+          <div className="col" style={{ flex: 1, alignItems: 'center', padding: '9px 4px' }}>
+            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.04em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+              FLOATING P&L
+            </span>
+            <span className="mono font-bold" style={{ fontSize: 13, color: metrics.unrealizedPnLUSD >= 0 ? 'var(--color-bull)' : 'var(--color-bear)', marginTop: 2 }}>
+              {metrics.unrealizedPnLUSD >= 0 ? '+' : ''}{formatCurrency(metrics.unrealizedPnLUSD, account.currency, true)}
+            </span>
+          </div>
+        </div>
+
+        {/* Tier 2: Real-Time Margin & Health Indicators */}
+        <div className="row">
+          <div className="col" style={{ flex: 1, alignItems: 'center', padding: '7px 4px', borderRight: '1px solid var(--border-dim)', minWidth: 0 }}>
+            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 600, letterSpacing: '0.03em', color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'center' }}>
+              USED MARGIN
+            </span>
+            <span className="mono" style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 1 }}>
+              {formatCurrency(metrics.usedMarginUSD, account.currency)}
+            </span>
+          </div>
+          <div className="col" style={{ flex: 1, alignItems: 'center', padding: '7px 4px', borderRight: '1px solid var(--border-dim)', minWidth: 0 }}>
+            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 600, letterSpacing: '0.03em', color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'center' }}>
+              FREE MARGIN
+            </span>
+            <span className="mono font-bold" style={{ fontSize: 11, color: metrics.freeMarginUSD > 0 ? 'var(--text-primary)' : 'var(--color-bear)', marginTop: 1 }}>
+              {formatCurrency(metrics.freeMarginUSD, account.currency)}
+            </span>
+          </div>
+          <div className="col" style={{ flex: 1, alignItems: 'center', padding: '7px 4px', minWidth: 0 }}>
+            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 9, fontWeight: 600, letterSpacing: '0.03em', color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'center' }}>
+              MARGIN LEVEL
+            </span>
+            <span
+              className="mono font-bold"
+              style={{
+                fontSize: 11,
+                color: metrics.usedMarginUSD <= 0
+                  ? 'var(--text-muted)'
+                  : metrics.marginLevelPct > 200
+                    ? 'var(--color-bull)'
+                    : metrics.marginLevelPct > 100
+                      ? 'var(--color-gold)'
+                      : 'var(--color-bear)',
+                marginTop: 1,
+              }}
+            >
+              {metrics.usedMarginUSD > 0 ? `${metrics.marginLevelPct.toFixed(0)}%` : '—'}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Open Positions */}
@@ -116,10 +166,15 @@ export function PositionsList({ positions, orders, history, prices, account, onC
                   <span className={`badge ${pos.side === 'short' ? 'badge-bear' : 'badge-neutral'}`} style={{ fontSize: 9 }}>
                     {pos.side === 'short' ? 'SHORT' : 'LONG'}
                   </span>
+                  {pos.lot != null && (
+                    <span className="badge badge-neutral" style={{ fontSize: 9, fontFamily: 'var(--font-mono)' }}>
+                      {pos.lot.toFixed(2)} LOT
+                    </span>
+                  )}
                   {onSelectAsset && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>↗</span>}
                 </div>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)' }}>
-                  {pos.quantity.toFixed(pos.quantity < 1 ? 6 : 4)} units @ {formatAssetPrice(pos.entryPriceUSD, pos.symbol)}
+                  {pos.lot != null ? `${pos.lot.toFixed(2)} Lot (${pos.quantity.toLocaleString()} units)` : `${pos.quantity.toFixed(pos.quantity < 1 ? 6 : 4)} units`} @ {formatAssetPrice(pos.entryPriceUSD, pos.symbol)}
                 </span>
               </div>
               <div className="col" style={{ alignItems: 'flex-end', gap: 2 }}>
@@ -166,8 +221,28 @@ export function PositionsList({ positions, orders, history, prices, account, onC
               <div className="row gap-2">
                 {onUpdateSLTP && (
                   <button
-                    className="btn btn-outline"
-                    style={{ fontSize: 10, padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: 3 }}
+                    className="btn"
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      letterSpacing: '0.04em',
+                      padding: '4px 9px',
+                      height: 26,
+                      background: (pos.stopLoss || pos.takeProfit)
+                        ? 'rgba(0, 230, 118, 0.12)'
+                        : 'rgba(255, 255, 255, 0.08)',
+                      border: (pos.stopLoss || pos.takeProfit)
+                        ? '1px solid rgba(0, 230, 118, 0.45)'
+                        : '1px solid var(--border-mid)',
+                      color: (pos.stopLoss || pos.takeProfit)
+                        ? 'var(--color-bull)'
+                        : 'var(--text-primary)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
+                      transition: 'all 0.12s ease',
+                    }}
                     onClick={(e) => {
                       e.stopPropagation();
                       setSltpPos(pos);
@@ -175,7 +250,8 @@ export function PositionsList({ positions, orders, history, prices, account, onC
                       setModalTp(pos.takeProfit ? pos.takeProfit.toString() : '');
                     }}
                   >
-                    <Shield size={10} /> SL/TP
+                    <Shield size={11} strokeWidth={2.4} />
+                    <span>SL/TP</span>
                   </button>
                 )}
                 <button
@@ -194,65 +270,71 @@ export function PositionsList({ positions, orders, history, prices, account, onC
         );
       })}
 
-      {/* Pending Limit Orders */}
-      {orders.length > 0 && (
-        <>
-          <div style={{ padding: '10px 12px 4px', borderTop: '1px solid var(--border-dim)', marginTop: 4 }}>
-            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-              PENDING ORDERS ({orders.length})
-            </span>
-          </div>
-          {orders.map(o => (
-            <div
-              key={o.id}
-              onClick={() => handleOpenStock(o.symbol)}
-              style={{
-                padding: '8px 12px',
-                borderBottom: '1px solid var(--border-dim)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                cursor: onSelectAsset ? 'pointer' : 'default',
-              }}
-              title={onSelectAsset ? `Click to open ${o.symbol} in Trade tab` : undefined}
-            >
-              <Clock size={12} color="var(--text-muted)" />
-              <span className="mono" style={{ fontSize: 11, flex: 1, textDecoration: onSelectAsset ? 'underline' : 'none', textUnderlineOffset: 2 }}>
-                {o.type === 'stop_loss' ? 'STOP' : o.type === 'take_profit' ? 'TARGET' : o.side.toUpperCase()}{' '}
-                {o.symbol.replace('.NS','').replace('USDT','')} @ {formatAssetPrice(o.limitPrice ?? 0, o.symbol)} × {o.quantity}
+      {/* Pending Limit & Protection Orders */}
+      {(() => {
+        const pendingOrders = orders.filter(o => o.status === 'pending');
+        if (pendingOrders.length === 0) return null;
+        return (
+          <>
+            <div style={{ padding: '10px 12px 4px', borderTop: '1px solid var(--border-dim)', marginTop: 4 }}>
+              <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                PENDING ORDERS ({pendingOrders.length})
               </span>
-              <span
-                className="badge"
+            </div>
+            {pendingOrders.map(o => (
+              <div
+                key={o.id}
+                onClick={() => handleOpenStock(o.symbol)}
                 style={{
-                  fontSize: 9,
-                  background: o.type === 'stop_loss' ? 'var(--bg-bear)' : o.type === 'take_profit' ? 'var(--bg-bull)' : 'var(--bg-subtle)',
-                  color: o.type === 'stop_loss' ? 'var(--color-bear)' : o.type === 'take_profit' ? 'var(--color-bull)' : 'var(--text-muted)',
-                  border: `1px solid ${o.type === 'stop_loss' ? 'var(--color-bear)' : o.type === 'take_profit' ? 'var(--color-bull)' : 'var(--border-dim)'}`,
+                  padding: '8px 12px',
+                  borderBottom: '1px solid var(--border-dim)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  cursor: onSelectAsset ? 'pointer' : 'default',
                 }}
+                title={onSelectAsset ? `Click to open ${o.symbol} in Trade tab` : undefined}
               >
-                {o.type === 'stop_loss' ? 'STOP LOSS' : o.type === 'take_profit' ? 'TARGET' : 'LIMIT'}
-              </span>
-              {onCancelOrder && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onCancelOrder(o.id);
-                  }}
-                  title="Cancel order"
+                <Clock size={12} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+                <span className="mono" style={{ fontSize: 11, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: onSelectAsset ? 'underline' : 'none', textUnderlineOffset: 2 }}>
+                  {o.type === 'stop_loss' ? 'STOP' : o.type === 'take_profit' ? 'TARGET' : o.side.toUpperCase()}{' '}
+                  {o.symbol.replace('.NS','').replace('USDT','')} @ {formatAssetPrice(o.limitPrice ?? 0, o.symbol)} × {o.lot != null ? `${o.lot.toFixed(2)}L` : o.quantity}
+                </span>
+                <span
+                  className="badge"
                   style={{
-                    background: 'none', border: '1px solid var(--border-dim)',
-                    color: 'var(--color-bear)', cursor: 'pointer', padding: '2px 6px',
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 9,
+                    flexShrink: 0,
+                    background: o.type === 'stop_loss' ? 'var(--bg-bear)' : o.type === 'take_profit' ? 'var(--bg-bull)' : 'var(--bg-subtle)',
+                    color: o.type === 'stop_loss' ? 'var(--color-bear)' : o.type === 'take_profit' ? 'var(--color-bull)' : 'var(--text-muted)',
+                    border: `1px solid ${o.type === 'stop_loss' ? 'var(--color-bear)' : o.type === 'take_profit' ? 'var(--color-bull)' : 'var(--border-dim)'}`,
                   }}
                 >
-                  <X size={10} />
-                </button>
-              )}
-            </div>
-          ))}
-        </>
-      )}
+                  {o.type === 'stop_loss' ? 'STOP LOSS' : o.type === 'take_profit' ? 'TARGET' : 'LIMIT'}
+                </span>
+                {onCancelOrder && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCancelOrder(o.id);
+                    }}
+                    title="Cancel order"
+                    style={{
+                      background: 'none', border: '1px solid var(--border-dim)',
+                      color: 'var(--color-bear)', cursor: 'pointer', padding: '2px 6px',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <X size={10} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </>
+        );
+      })()}
 
       {/* Trade History */}
       <div style={{ padding: '10px 12px 4px', borderTop: '1px solid var(--border-dim)', marginTop: 4 }}>
@@ -271,35 +353,58 @@ export function PositionsList({ positions, orders, history, prices, account, onC
           <div
             key={h.id}
             onClick={() => handleOpenStock(h.symbol)}
-            className="row between"
             style={{
-              padding: '8px 12px',
               borderBottom: '1px solid var(--border-dim)',
               cursor: onSelectAsset ? 'pointer' : 'default',
               transition: 'background 0.15s',
+              padding: '9px 12px',
             }}
             title={onSelectAsset ? `Click to open ${h.symbol} in Trade tab` : undefined}
           >
-            <div className="col" style={{ gap: 2 }}>
-              <div className="row gap-1" style={{ alignItems: 'center' }}>
-                <span className="mono font-bold" style={{ fontSize: 12, textDecoration: onSelectAsset ? 'underline' : 'none', textUnderlineOffset: 2 }}>
+            {/* Row 1: Symbol + badges + date */}
+            <div className="row between" style={{ alignItems: 'center', marginBottom: 5 }}>
+              <div className="row gap-1" style={{ alignItems: 'center', minWidth: 0, flex: 1 }}>
+                <span className="mono font-bold" style={{ fontSize: 12, textDecoration: onSelectAsset ? 'underline' : 'none', textUnderlineOffset: 2, flexShrink: 0 }}>
                   {h.symbol.replace('.NS','').replace('USDT','')}
                 </span>
-                <span className={`badge ${h.side === 'short' ? 'badge-bear' : 'badge-neutral'}`} style={{ fontSize: 8 }}>
+                <span className={`badge ${h.side === 'short' ? 'badge-bear' : 'badge-neutral'}`} style={{ fontSize: 8, flexShrink: 0 }}>
                   {h.side === 'short' ? 'SHORT' : 'LONG'}
                 </span>
-                {onSelectAsset && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>↗</span>}
+                {h.lot != null && (
+                  <span className="badge badge-neutral" style={{ fontSize: 8, fontFamily: 'var(--font-mono)', flexShrink: 0 }}>
+                    {h.lot.toFixed(2)}L
+                  </span>
+                )}
+                {onSelectAsset && <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>↗</span>}
               </div>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)' }}>
-                {new Date(h.exitTime).toLocaleDateString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}
+              {/* Net P&L — right aligned */}
+              <span
+                className="mono font-bold"
+                style={{ fontSize: 13, color: isUp ? 'var(--color-bull)' : 'var(--color-bear)', flexShrink: 0, marginLeft: 8 }}
+              >
+                {isUp ? '+' : ''}{formatCurrency(h.realizedPnLUSD, account.currency, true)}
               </span>
             </div>
-            <span
-              className="num font-bold"
-              style={{ fontSize: 13, color: isUp ? 'var(--color-bull)' : 'var(--color-bear)' }}
-            >
-              {isUp ? '+' : ''}{formatCurrency(h.realizedPnLUSD, account.currency, true)}
-            </span>
+
+            {/* Row 2: Entry → Exit prices + fee */}
+            <div className="row" style={{ alignItems: 'center', gap: 6, minWidth: 0 }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>
+                {formatAssetPrice(h.entryPriceUSD, h.symbol)}
+              </span>
+              <span style={{ fontSize: 9, color: 'var(--text-muted)', flexShrink: 0 }}>→</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-secondary)', flexShrink: 0 }}>
+                {formatAssetPrice(h.exitPriceUSD, h.symbol)}
+              </span>
+              <span style={{ fontSize: 9, color: 'var(--border-mid)', flexShrink: 0 }}>·</span>
+              {h.commissionUSD != null && h.commissionUSD > 0 ? (
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>
+                  Fee ${h.commissionUSD.toFixed(2)}
+                </span>
+              ) : null}
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-muted)', marginLeft: 'auto', flexShrink: 0 }}>
+                {new Date(h.exitTime).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
           </div>
         );
       })}
