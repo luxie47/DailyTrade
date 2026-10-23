@@ -8,6 +8,8 @@ import { ArrowLeft, Maximize2, Minimize2, X, MoveVertical } from 'lucide-react';
 import type { Candle, Timeframe } from '../types/market';
 import type { Position, Order } from '../types/trade';
 import { formatAssetPrice, getAssetUSDMultiplier } from '../utils/formatPrice';
+import { calculatePotentialPnL, formatPotentialPnL } from '../core/trading/lots';
+import { ChartDrawingOverlay } from './ChartDrawingOverlay';
 
 const TIMEFRAMES: Timeframe[] = ['1m', '5m', '15m', '1h', '1D'];
 
@@ -60,6 +62,10 @@ export function TradingViewChart({
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [draggingOrder, setDraggingOrder] = useState<{ id: string; price: number; side: string } | null>(null);
   const [draggingSLTP, setDraggingSLTP] = useState<{ type: 'sl' | 'tp'; price: number } | null>(null);
+  const [isDrawingZone, setIsDrawingZone] = useState<boolean>(false);
+  const [showTradeLevels, setShowTradeLevels] = useState<boolean>(() => {
+    try { return localStorage.getItem('dt_show_trade_levels') !== 'false'; } catch { return true; }
+  });
   const [, setRenderTrigger] = useState(0);
 
   // ── Init chart once ──────────────────────────────────────────────────────
@@ -336,7 +342,7 @@ export function TradingViewChart({
       try { candleRef.current.removePriceLine(entryLineRef.current); } catch { /* ok */ }
       entryLineRef.current = null;
     }
-    if (entryPrice) {
+    if (entryPrice && showTradeLevels) {
       entryLineRef.current = candleRef.current.createPriceLine({
         price: entryPrice,
         color: '#00e676',
@@ -346,7 +352,7 @@ export function TradingViewChart({
         title: 'ENTRY',
       });
     }
-  }, [entryPrice]);
+  }, [entryPrice, showTradeLevels]);
 
   // ── Stop Loss dashed line ────────────────────────────────────────────────
   useEffect(() => {
@@ -355,17 +361,17 @@ export function TradingViewChart({
       try { candleRef.current.removePriceLine(slLineRef.current); } catch { /* ok */ }
       slLineRef.current = null;
     }
-    if (stopLoss && stopLoss > 0) {
+    if (stopLoss && stopLoss > 0 && showTradeLevels) {
       slLineRef.current = candleRef.current.createPriceLine({
         price: stopLoss,
         color: '#ff3d71',
         lineWidth: 1,
         lineStyle: LineStyle.Dashed,
         axisLabelVisible: true,
-        title: 'SL',
+        title: '',
       });
     }
-  }, [stopLoss]);
+  }, [stopLoss, activePosition, rawSymbol, symbol, assetClass, showTradeLevels]);
 
   // ── Take Profit dashed line ──────────────────────────────────────────────
   useEffect(() => {
@@ -374,26 +380,36 @@ export function TradingViewChart({
       try { candleRef.current.removePriceLine(tpLineRef.current); } catch { /* ok */ }
       tpLineRef.current = null;
     }
-    if (takeProfit && takeProfit > 0) {
+    if (takeProfit && takeProfit > 0 && showTradeLevels) {
       tpLineRef.current = candleRef.current.createPriceLine({
         price: takeProfit,
         color: '#00e676',
         lineWidth: 1,
         lineStyle: LineStyle.Dashed,
         axisLabelVisible: true,
-        title: 'TP',
+        title: '',
       });
     }
-  }, [takeProfit]);
+  }, [takeProfit, activePosition, rawSymbol, symbol, assetClass, showTradeLevels]);
 
   // ── Live-sync SL/TP price lines while dragging ──────────────────────────
   useEffect(() => {
     if (!draggingSLTP) return;
     if (draggingSLTP.type === 'sl' && slLineRef.current) {
-      try { slLineRef.current.applyOptions({ price: draggingSLTP.price }); } catch { /* ok */ }
+      try {
+        slLineRef.current.applyOptions({
+          price: draggingSLTP.price,
+          title: '',
+        });
+      } catch { /* ok */ }
     }
     if (draggingSLTP.type === 'tp' && tpLineRef.current) {
-      try { tpLineRef.current.applyOptions({ price: draggingSLTP.price }); } catch { /* ok */ }
+      try {
+        tpLineRef.current.applyOptions({
+          price: draggingSLTP.price,
+          title: '',
+        });
+      } catch { /* ok */ }
     }
   }, [draggingSLTP]);
 
@@ -433,13 +449,54 @@ export function TradingViewChart({
     }
   }, [isFullscreen]);
 
-  // ── Pending Limit Orders Price Lines ────────────────────────────────────
-  const pendingOrders = (orders || []).filter(
+  // ── Pending Orders Price Lines ──────────────────────────────────────────
+  const basePendingOrders = (orders || []).filter(
     o => (o.symbol === symbol || (rawSymbol && o.symbol === rawSymbol)) && o.status === 'pending' && o.limitPrice
   );
+  const pendingOrders = [...basePendingOrders];
+  if (activePosition?.stopLoss && activePosition.stopLoss > 0 && !basePendingOrders.some(o => o.type === 'stop_loss' && (o.positionId === activePosition.id || o.symbol === (rawSymbol || symbol)))) {
+    pendingOrders.push({
+      id: `virtual-sl-${activePosition.id}`,
+      accountId: activePosition.accountId,
+      symbol: rawSymbol || symbol,
+      side: activePosition.side === 'short' ? 'buy' : 'sell',
+      type: 'stop_loss',
+      quantity: activePosition.quantity,
+      lot: activePosition.lot,
+      limitPrice: activePosition.stopLoss,
+      positionId: activePosition.id,
+      status: 'pending',
+      createdAt: 0,
+    });
+  }
+  if (activePosition?.takeProfit && activePosition.takeProfit > 0 && !basePendingOrders.some(o => o.type === 'take_profit' && (o.positionId === activePosition.id || o.symbol === (rawSymbol || symbol)))) {
+    pendingOrders.push({
+      id: `virtual-tp-${activePosition.id}`,
+      accountId: activePosition.accountId,
+      symbol: rawSymbol || symbol,
+      side: activePosition.side === 'short' ? 'buy' : 'sell',
+      type: 'take_profit',
+      quantity: activePosition.quantity,
+      lot: activePosition.lot,
+      limitPrice: activePosition.takeProfit,
+      positionId: activePosition.id,
+      status: 'pending',
+      createdAt: 0,
+    });
+  }
 
   useEffect(() => {
     if (!candleRef.current) return;
+
+    // When POSITIONS hidden: clear all canvas order lines
+    if (!showTradeLevels) {
+      for (const [id, line] of Object.entries(orderLinesRef.current)) {
+        try { candleRef.current.removePriceLine(line); } catch { /* ok */ }
+        delete orderLinesRef.current[id];
+      }
+      return;
+    }
+
     const currentIds = new Set(pendingOrders.map(o => o.id));
     for (const [id, line] of Object.entries(orderLinesRef.current)) {
       if (!currentIds.has(id)) {
@@ -449,16 +506,21 @@ export function TradingViewChart({
     }
 
     for (const ord of pendingOrders) {
-      const isBuy = ord.side === 'buy';
-      const color = isBuy ? '#00e676' : '#ff3d71';
-      const price = draggingOrder?.id === ord.id ? draggingOrder.price : ord.limitPrice!;
-      const sizeStr = ord.lot ? `${ord.lot} lot` : `${ord.quantity}u`;
-      const label = `${isBuy ? 'BUY' : 'SELL'} LMT ${sizeStr}`;
+      // Do not create duplicate canvas lines if slLineRef or tpLineRef already manages the position SL/TP
+      if (ord.type === 'stop_loss' && slLineRef.current) continue;
+      if (ord.type === 'take_profit' && tpLineRef.current) continue;
 
+      const isTp = ord.type === 'take_profit';
+      const isSl = ord.type === 'stop_loss';
+      const isBuy = ord.side === 'buy';
+      const color = isTp ? '#00e676' : isSl ? '#ff3d71' : (isBuy ? '#00e676' : '#ff3d71');
+      const price = draggingOrder?.id === ord.id
+        ? draggingOrder.price
+        : (isSl && draggingSLTP?.type === 'sl' ? draggingSLTP.price : (isTp && draggingSLTP?.type === 'tp' ? draggingSLTP.price : ord.limitPrice!));
       const existing = orderLinesRef.current[ord.id];
       if (existing) {
         try {
-          existing.applyOptions({ price, color, title: label });
+          existing.applyOptions({ price, color, title: '' });
         } catch { /* ok */ }
       } else {
         try {
@@ -468,26 +530,36 @@ export function TradingViewChart({
             lineWidth: 1,
             lineStyle: LineStyle.Dashed,
             axisLabelVisible: true,
-            title: label,
+            title: '',
           });
         } catch { /* ok */ }
       }
     }
-  }, [pendingOrders, draggingOrder]);
+  }, [pendingOrders, draggingOrder, draggingSLTP, showTradeLevels]);
 
-  // ── Pointer Drag Event Handlers for Limit Orders ────────────────────────
-  const handleStartOrderDrag = (e: React.PointerEvent, ord: Order) => {
-    e.stopPropagation();
-    e.preventDefault();
-    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-    setDraggingOrder({ id: ord.id, price: ord.limitPrice!, side: ord.side });
-  };
-
-  const handleStartSLTPDrag = (e: React.PointerEvent, type: 'sl' | 'tp', price: number) => {
+  // ── Pointer Drag Event Handlers for Orders & SL/TP ───────────────────────
+  const handleStartSLTPDrag = (e: React.PointerEvent, type: 'sl' | 'tp', price: number, linkedOrder?: Order) => {
     e.stopPropagation();
     e.preventDefault();
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     setDraggingSLTP({ type, price });
+    const ord = linkedOrder || pendingOrders.find(o => o.type === (type === 'sl' ? 'stop_loss' : 'take_profit'));
+    if (ord) {
+      setDraggingOrder({ id: ord.id, price, side: ord.side });
+    }
+  };
+
+  const handleStartOrderDrag = (e: React.PointerEvent, ord: Order) => {
+    e.stopPropagation();
+    e.preventDefault();
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    if (ord.type === 'stop_loss') {
+      handleStartSLTPDrag(e, 'sl', ord.limitPrice!, ord);
+    } else if (ord.type === 'take_profit') {
+      handleStartSLTPDrag(e, 'tp', ord.limitPrice!, ord);
+    } else {
+      setDraggingOrder({ id: ord.id, price: ord.limitPrice!, side: ord.side });
+    }
   };
 
   const handlePointerMoveContainer = (e: React.PointerEvent) => {
@@ -496,28 +568,40 @@ export function TradingViewChart({
     const yCoord = e.clientY - rect.top;
     const newPrice = candleRef.current.coordinateToPrice(yCoord);
     if (newPrice && newPrice > 0) {
-      if (draggingOrder) {
-        setDraggingOrder(prev => prev ? { ...prev, price: newPrice } : null);
-      }
       if (draggingSLTP) {
-        setDraggingSLTP(prev => prev ? { ...prev, price: newPrice } : null);
+        let safePrice = Number(newPrice);
+        if (activePosition && activePosition.entryPriceUSD > 0) {
+          const isLong = activePosition.side !== 'short';
+          const entry = activePosition.entryPriceUSD;
+          if (draggingSLTP.type === 'sl') {
+            safePrice = isLong ? Math.min(safePrice, entry * 0.9998) : Math.max(safePrice, entry * 1.0002);
+          } else if (draggingSLTP.type === 'tp') {
+            safePrice = isLong ? Math.max(safePrice, entry * 1.0002) : Math.min(safePrice, entry * 0.9998);
+          }
+        }
+        setDraggingSLTP(prev => prev ? { ...prev, price: safePrice } : null);
+        if (draggingOrder) {
+          setDraggingOrder(prev => prev ? { ...prev, price: safePrice } : null);
+        }
+      } else if (draggingOrder) {
+        setDraggingOrder(prev => prev ? { ...prev, price: newPrice } : null);
       }
     }
   };
 
   const handlePointerUpContainer = () => {
-    if (draggingOrder) {
-      onUpdateLimitOrderPrice?.(draggingOrder.id, draggingOrder.price);
-      setDraggingOrder(null);
-    }
     if (draggingSLTP && activePosition) {
       if (draggingSLTP.type === 'sl') {
         onUpdateSLTP?.(activePosition.id, draggingSLTP.price, activePosition.takeProfit);
       } else {
         onUpdateSLTP?.(activePosition.id, activePosition.stopLoss, draggingSLTP.price);
       }
-      setDraggingSLTP(null);
     }
+    if (draggingOrder) {
+      onUpdateLimitOrderPrice?.(draggingOrder.id, draggingOrder.price);
+    }
+    setDraggingOrder(null);
+    setDraggingSLTP(null);
   };
 
   return (
@@ -565,19 +649,62 @@ export function TradingViewChart({
           </span>
         </div>
 
-        {/* Chart type */}
-        <div style={{ display: 'flex', border: '1px solid var(--border-dim)' }}>
-          {(['candle', 'area'] as const).map(t => (
-            <button key={t} onClick={() => setChartType(t)} style={{
-              background: chartType === t ? 'var(--border-mid)' : 'transparent',
-              color: chartType === t ? '#fff' : 'var(--text-muted)',
-              border: 'none', borderRight: t === 'candle' ? '1px solid var(--border-dim)' : 'none',
-              padding: '5px 9px', fontFamily: 'var(--font-ui)', fontSize: 11,
-              fontWeight: 600, cursor: 'pointer',
-            }}>
-              {t === 'candle' ? 'OHLC' : 'LINE'}
-            </button>
-          ))}
+        {/* Drawing & Chart Type Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button
+            onClick={() => setIsDrawingZone(prev => !prev)}
+            style={{
+              background: isDrawingZone ? 'rgba(59, 130, 246, 0.22)' : 'transparent',
+              color: isDrawingZone ? '#3b82f6' : 'var(--text-muted)',
+              border: `1px solid ${isDrawingZone ? '#3b82f6' : 'var(--border-dim)'}`,
+              padding: '5px 8px',
+              fontFamily: 'var(--font-ui)',
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
+            title="Draw Order Block / Supply & Demand Zone"
+          >
+            <span>▭</span> {isDrawingZone ? 'DRAWING' : 'ZONE'}
+          </button>
+
+          {/* POSITIONS toggle — show/hide entry, SL, TP, limit orders */}
+          <button
+            onClick={() => setShowTradeLevels(prev => {
+              const next = !prev;
+              try { localStorage.setItem('dt_show_trade_levels', String(next)); } catch {}
+              return next;
+            })}
+            style={{
+              background: showTradeLevels ? 'rgba(0, 230, 118, 0.12)' : 'transparent',
+              color: showTradeLevels ? '#00e676' : 'var(--text-muted)',
+              border: `1px solid ${showTradeLevels ? '#00e676' : 'var(--border-dim)'}`,
+              padding: '5px 8px',
+              fontFamily: 'var(--font-ui)',
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+            title="Show / hide entry, stop loss, take profit, and limit order levels"
+          >
+            POSITIONS
+          </button>
+          <div style={{ display: 'flex', border: '1px solid var(--border-dim)' }}>
+            {(['candle', 'area'] as const).map(t => (
+              <button key={t} onClick={() => setChartType(t)} style={{
+                background: chartType === t ? 'var(--border-mid)' : 'transparent',
+                color: chartType === t ? '#fff' : 'var(--text-muted)',
+                border: 'none', borderRight: t === 'candle' ? '1px solid var(--border-dim)' : 'none',
+                padding: '5px 9px', fontFamily: 'var(--font-ui)', fontSize: 11,
+                fontWeight: 600, cursor: 'pointer',
+              }}>
+                {t === 'candle' ? 'OHLC' : 'LINE'}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -646,6 +773,17 @@ export function TradingViewChart({
       <div style={{ position: 'relative', width: '100%', flex: isFullscreen ? 1 : 'none', height: isFullscreen ? 'auto' : 300, overflow: 'hidden' }}>
         <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 
+        {/* Native Order Blocks & Supply/Demand Zones Drawing Overlay */}
+        <ChartDrawingOverlay
+          chart={chartRef.current}
+          series={candleRef.current}
+          symbol={rawSymbol || symbol}
+          isDrawing={isDrawingZone}
+          onDrawingComplete={() => setIsDrawingZone(false)}
+          containerRef={containerRef}
+          isFullscreen={isFullscreen}
+        />
+
         {/* Price scale countdown tag (beneath price scale active price) */}
         <div
           style={{
@@ -667,12 +805,72 @@ export function TradingViewChart({
           ⏱ {countdown}
         </div>
 
-        {/* Pending Limit Orders Draggable Chips */}
-        {pendingOrders.map(ord => {
-          const displayPrice = draggingOrder?.id === ord.id ? draggingOrder.price : ord.limitPrice!;
+        {/* ENTRY anchor chip — shown when position active and levels visible */}
+        {showTradeLevels && activePosition && entryPrice && (() => {
+          const yCoord = candleRef.current?.priceToCoordinate(entryPrice);
+          if (yCoord == null || isNaN(yCoord as number)) return null;
+          return (
+            <div style={{
+              position: 'absolute',
+              top: `${Math.max(4, Math.min(yCoord - 12, (isFullscreen ? window.innerHeight - 130 : 270)))}px`,
+              left: 8, zIndex: 25,
+              display: 'flex', alignItems: 'center',
+              background: '#0d0d12', border: '1px solid #00e676',
+              borderRadius: 4, padding: '2px 7px',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.9)', userSelect: 'none',
+            }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: '#00e676' }}>
+                ENTRY {formatAssetPrice(entryPrice, rawSymbol || symbol)}
+              </span>
+            </div>
+          );
+        })()}
+
+        {/* Pending Orders & SL/TP Draggable Chips — gated behind POSITIONS toggle */}
+        {showTradeLevels && pendingOrders.map(ord => {
+          const isSL = ord.type === 'stop_loss';
+          const isTP = ord.type === 'take_profit';
+          const isBuy = ord.side === 'buy';
+
+          let displayPrice = ord.limitPrice!;
+          if (draggingOrder?.id === ord.id) {
+            displayPrice = draggingOrder.price;
+          } else if (isSL && draggingSLTP?.type === 'sl') {
+            displayPrice = draggingSLTP.price;
+          } else if (isTP && draggingSLTP?.type === 'tp') {
+            displayPrice = draggingSLTP.price;
+          }
+
           const yCoord = candleRef.current?.priceToCoordinate(displayPrice);
           if (yCoord === null || yCoord === undefined || isNaN(yCoord)) return null;
-          const isBuy = ord.side === 'buy';
+
+          const chipColor = isTP ? '#00e676' : isSL ? '#ff3d71' : (isBuy ? '#00e676' : '#ff3d71');
+          const effectiveLot = ord.lot ?? activePosition?.lot;
+          const effectiveQty = ord.quantity ?? activePosition?.quantity;
+          const sizeLabel = effectiveLot ? `${effectiveLot}L` : `${effectiveQty}u`;
+
+          let labelText = '';
+          if (isTP || isSL) {
+            const pot = activePosition ? calculatePotentialPnL(
+              activePosition.entryPriceUSD || entryPrice || 0,
+              displayPrice,
+              activePosition.side || (ord.side === 'sell' ? 'long' : 'short'),
+              effectiveLot,
+              effectiveQty,
+              rawSymbol || symbol,
+              assetClass
+            ) : 0;
+            const pnlStr = formatPotentialPnL(pot);
+            const priceStr = formatAssetPrice(displayPrice, rawSymbol || symbol);
+            const lotPart = effectiveLot ? ` • ${effectiveLot}L` : '';
+            labelText = isTP ? `TP ${pnlStr} (${priceStr}${lotPart})` : `SL ${pnlStr} (${priceStr}${lotPart})`;
+          } else {
+            labelText = `${isBuy ? 'BUY LMT' : 'SELL LMT'} ${sizeLabel}`;
+            if (draggingOrder?.id === ord.id) {
+              labelText += ` • ${formatAssetPrice(displayPrice, rawSymbol || symbol)}`;
+            }
+          }
+
           return (
             <div
               key={ord.id}
@@ -683,12 +881,12 @@ export function TradingViewChart({
                 zIndex: 25,
                 display: 'flex',
                 alignItems: 'center',
-                background: isBuy ? 'rgba(0, 230, 118, 0.15)' : 'rgba(255, 61, 113, 0.15)',
-                border: `1px solid ${isBuy ? '#00e676' : '#ff3d71'}`,
+                background: '#0d0d12',
+                border: `1px solid ${chipColor}`,
                 borderRadius: 4,
-                padding: '2px 6px',
+                padding: '2px 7px',
                 gap: 6,
-                backdropFilter: 'blur(4px)',
+                boxShadow: '0 2px 12px rgba(0, 0, 0, 0.9)',
                 userSelect: 'none',
               }}
             >
@@ -697,22 +895,31 @@ export function TradingViewChart({
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4, cursor: 'ns-resize', touchAction: 'none',
                 }}
-                title="Drag up/down to adjust limit price"
+                title={isSL ? "Drag to adjust Stop Loss" : isTP ? "Drag to adjust Take Profit" : "Drag up/down to adjust limit price"}
               >
-                <MoveVertical size={11} color={isBuy ? '#00e676' : '#ff3d71'} />
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: '#fff' }}>
-                  {isBuy ? 'BUY LMT' : 'SELL LMT'} {ord.lot ? `${ord.lot}L` : `${ord.quantity}u`}
-                  {draggingOrder?.id === ord.id ? ` • $${displayPrice.toFixed(2)}` : ''}
+                <MoveVertical size={11} color={chipColor} />
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: chipColor }}>
+                  {labelText}
                 </span>
               </div>
               {onCancelOrder && (
                 <button
-                  onClick={e => { e.stopPropagation(); onCancelOrder(ord.id); }}
+                  onClick={e => {
+                    e.stopPropagation();
+                    if (!ord.id.startsWith('virtual-')) {
+                      onCancelOrder(ord.id);
+                    }
+                    if (isSL && activePosition) {
+                      onUpdateSLTP?.(activePosition.id, undefined, activePosition.takeProfit);
+                    } else if (isTP && activePosition) {
+                      onUpdateSLTP?.(activePosition.id, activePosition.stopLoss, undefined);
+                    }
+                  }}
                   style={{
                     background: 'transparent', border: 'none', padding: 0,
                     cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
                   }}
-                  title="Cancel Limit Order"
+                  title={isSL ? "Cancel Stop Loss" : isTP ? "Cancel Take Profit" : "Cancel Limit Order"}
                 >
                   <X size={11} />
                 </button>
@@ -720,82 +927,6 @@ export function TradingViewChart({
             </div>
           );
         })}
-
-        {/* SL Draggable Chip */}
-        {(() => {
-          if (!activePosition || !stopLoss || stopLoss <= 0) return null;
-          const displaySL = draggingSLTP?.type === 'sl' ? draggingSLTP.price : stopLoss;
-          const yCoord = candleRef.current?.priceToCoordinate(displaySL);
-          if (yCoord == null || isNaN(yCoord as number)) return null;
-          return (
-            <div
-              style={{
-                position: 'absolute',
-                top: `${Math.max(4, Math.min(yCoord - 12, (isFullscreen ? window.innerHeight - 130 : 270)))}px`,
-                right: 62,
-                zIndex: 25,
-                display: 'flex',
-                alignItems: 'center',
-                background: 'rgba(255, 61, 113, 0.18)',
-                border: '1px solid #ff3d71',
-                borderRadius: 4,
-                padding: '2px 6px',
-                gap: 5,
-                backdropFilter: 'blur(4px)',
-                userSelect: 'none',
-              }}
-            >
-              <div
-                onPointerDown={e => handleStartSLTPDrag(e, 'sl', stopLoss)}
-                style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'ns-resize', touchAction: 'none' }}
-                title="Drag to adjust Stop Loss"
-              >
-                <MoveVertical size={11} color="#ff3d71" />
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: '#ff3d71' }}>
-                  SL{draggingSLTP?.type === 'sl' ? ` $${displaySL.toFixed(2)}` : ''}
-                </span>
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* TP Draggable Chip */}
-        {(() => {
-          if (!activePosition || !takeProfit || takeProfit <= 0) return null;
-          const displayTP = draggingSLTP?.type === 'tp' ? draggingSLTP.price : takeProfit;
-          const yCoord = candleRef.current?.priceToCoordinate(displayTP);
-          if (yCoord == null || isNaN(yCoord as number)) return null;
-          return (
-            <div
-              style={{
-                position: 'absolute',
-                top: `${Math.max(4, Math.min(yCoord - 12, (isFullscreen ? window.innerHeight - 130 : 270)))}px`,
-                right: 62,
-                zIndex: 25,
-                display: 'flex',
-                alignItems: 'center',
-                background: 'rgba(0, 230, 118, 0.15)',
-                border: '1px solid #00e676',
-                borderRadius: 4,
-                padding: '2px 6px',
-                gap: 5,
-                backdropFilter: 'blur(4px)',
-                userSelect: 'none',
-              }}
-            >
-              <div
-                onPointerDown={e => handleStartSLTPDrag(e, 'tp', takeProfit)}
-                style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'ns-resize', touchAction: 'none' }}
-                title="Drag to adjust Take Profit"
-              >
-                <MoveVertical size={11} color="#00e676" />
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: '#00e676' }}>
-                  TP{draggingSLTP?.type === 'tp' ? ` $${displayTP.toFixed(2)}` : ''}
-                </span>
-              </div>
-            </div>
-          );
-        })()}
 
         {/* Floating Fullscreen / Minimize Toggle Button */}
         <button

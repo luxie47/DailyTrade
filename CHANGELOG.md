@@ -2,6 +2,19 @@
 
 All notable changes to DailyTrade documented in this file.
 
+## [1.3.1] - 2026-10-23
+
+### Added
+- **Formal Chart Trade Level Controls (`[POSITIONS]`)**: Introduced an illuminated toolbar toggle button (`[POSITIONS]`) allowing traders to show or hide all trade-related visual artifacts—including active Entry lines, Stop Loss dashed lines, Take Profit dashed lines, and pending limit orders—across both Candlestick (OHLC) and Line (Area) chart modes with persistent on-device state.
+- **Interactive Floating Order Chips & Entry Anchors**: Left-aligned high-contrast draggable badges for Stop Loss, Take Profit, and active Entry prices featuring live P&L projections, lot sizes, and single-tap order cancellation directly on the chart canvas.
+- **Dynamic P&L Projections on Draggable Handles**: Real-time projection formatting on active Stop Loss (`SL -$XX.XX`) and Take Profit (`TP +$XX.XX`) chips calculated continuously from the active position basis.
+
+### Enhanced & Optimized
+- **Complete Canvas Lifecycle & Memory Cleanup**: Explicit disposal and memory recycling of Lightweight Charts canvas price lines when trade levels are toggled off, preventing memory leaks, ghost lines, and unnecessary canvas repaint cycles.
+- **Cross-Chart Coordinate Synchronization**: Unified coordinate mapping ensuring all trade levels, entry lines, and draggable chips align consistently across both Candlestick and Area Line chart views.
+
+---
+
 ## [1.3.0] - 2026-10-23
 
 ### Added

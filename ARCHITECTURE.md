@@ -119,6 +119,11 @@ All critical trading rules and mathematical calculations live in pure, framework
 - Pointer move events smoothly map canvas Y-coordinates to price via Lightweight Charts' `series.coordinateToPrice()` and snap to asset precision.
 - Drag release immediately commits updated protective stop thresholds through `onUpdateSLTP` directly to the active position without modal interruption.
 
+### E. Trade Level Visibility & Canvas Lifecycle Management (`[POSITIONS]`)
+- **Single-Source Visibility Toggle**: Chart toolbar includes a formal `[POSITIONS]` switch backed by `localStorage` (`dt_show_trade_levels`) that controls visibility of all trade-related visual artifacts.
+- **Complete Canvas Memory Cleanup**: When toggled off, effects traverse `orderLinesRef`, `entryLineRef`, `slLineRef`, and `tpLineRef`, explicitly calling `candleRef.current.removePriceLine(line)` and clearing ref mappings to eliminate memory leaks and orphaned paint cycles.
+- **Synchronized Draggable Chips & P&L Projections**: Floating DOM overlay chips (`ENTRY`, `SL -$XX.XX`, `TP +$XX.XX`, and limit orders) compute live projected P&L via `calculatePotentialPnL` and snap to series coordinates (`priceToCoordinate`), operating seamlessly across both Candlestick (OHLC) and Area (Line) chart views.
+
 ---
 
 ## 4. Resilient Market Data Pipeline (`src/api/`)

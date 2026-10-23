@@ -53,7 +53,8 @@ export function getAssetLeverage(symbol: string, assetClass?: string): number {
  * Converts lot size to effective tradable units.
  */
 export function lotToUnits(lot: number, symbol: string, assetClass?: string): number {
-  const safeLot = Math.max(MIN_LOT, isNaN(lot) ? DEFAULT_LOT : lot);
+  const isInvalid = !Number.isFinite(lot) || isNaN(lot);
+  const safeLot = isInvalid ? DEFAULT_LOT : Math.min(MAX_LOT, Math.max(MIN_LOT, lot));
   const contract = getContractSize(symbol, assetClass);
   return Number((safeLot * contract).toFixed(6));
 }
@@ -93,3 +94,55 @@ export function formatLot(lot: number): string {
   if (isNaN(lot) || lot <= 0) return '0.01';
   return lot.toFixed(2);
 }
+
+/**
+ * Calculates potential PnL in USD for a given target price (SL or TP)
+ * against an entry price, trade side, and lot size (or unit quantity).
+ * Anticheat & Bounds: Handles NaN, 0, negative lots safely with fallback to MIN_LOT.
+ */
+export function calculatePotentialPnL(
+  entryPrice: number,
+  targetPrice: number,
+  side: 'long' | 'short' | 'buy' | 'sell',
+  lot: number | undefined,
+  units: number | undefined,
+  symbol: string,
+  assetClass?: string
+): number {
+  if (
+    !entryPrice || !targetPrice ||
+    !Number.isFinite(entryPrice) || !Number.isFinite(targetPrice) ||
+    isNaN(entryPrice) || isNaN(targetPrice) ||
+    entryPrice <= 0 || targetPrice <= 0
+  ) {
+    return 0;
+  }
+
+  // Resolve effective units: use lot if provided; otherwise fallback to units
+  let effectiveUnits: number;
+  if (lot !== undefined && Number.isFinite(lot) && lot > 0) {
+    effectiveUnits = lotToUnits(lot, symbol, assetClass);
+  } else if (units !== undefined && Number.isFinite(units) && units > 0) {
+    effectiveUnits = units;
+  } else {
+    effectiveUnits = lotToUnits(DEFAULT_LOT, symbol, assetClass);
+  }
+
+  const mult = getAssetUSDMultiplier(symbol);
+  const isLong = side === 'long' || side === 'buy';
+  const priceDiff = isLong ? (targetPrice - entryPrice) : (entryPrice - targetPrice);
+
+  const rawPnL = priceDiff * effectiveUnits * mult;
+  return Number.isFinite(rawPnL) ? Number(rawPnL.toFixed(2)) : 0;
+}
+
+/**
+ * Formats potential dollar amount with explicit sign and symbol:
+ * e.g. "+$145.20" or "-$50.00"
+ */
+export function formatPotentialPnL(pnlUSD: number): string {
+  if (isNaN(pnlUSD)) return '$0.00';
+  const prefix = pnlUSD > 0 ? '+$' : pnlUSD < 0 ? '-$' : '$';
+  return `${prefix}${Math.abs(pnlUSD).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+

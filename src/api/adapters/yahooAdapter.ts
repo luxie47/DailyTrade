@@ -8,14 +8,25 @@ function getYahooUrls(path: string): string[] {
 
   if (isCapacitor) {
     // In native Android APK, Capacitor native HTTP has zero CORS restrictions
-    return [rawUrl, `${ENV.ALLORIGINS_PROXY}${encodeURIComponent(rawUrl)}`];
+    return [
+      rawUrl,
+      `https://corsproxy.io/?url=${encodeURIComponent(rawUrl)}`,
+      `${ENV.ALLORIGINS_PROXY}${encodeURIComponent(rawUrl)}`,
+    ];
   }
 
   if (isLocalDev()) {
-    return [`${ENV.DEV_PROXY_PREFIX}${path}`];
+    return [
+      `${ENV.DEV_PROXY_PREFIX}${path}`,
+      `https://corsproxy.io/?url=${encodeURIComponent(rawUrl)}`,
+      `${ENV.ALLORIGINS_PROXY}${encodeURIComponent(rawUrl)}`,
+    ];
   }
 
-  return [`${ENV.ALLORIGINS_PROXY}${encodeURIComponent(rawUrl)}`];
+  return [
+    `https://corsproxy.io/?url=${encodeURIComponent(rawUrl)}`,
+    `${ENV.ALLORIGINS_PROXY}${encodeURIComponent(rawUrl)}`,
+  ];
 }
 
 interface YahooChartResponse {

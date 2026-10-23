@@ -39,44 +39,131 @@ export function startSyntheticTicks(
 }
 
 export function getBaselinePrice(symbol: string): number {
-  if (symbol.includes('BTC')) return 81700;
-  if (symbol.includes('ETH')) return 2600;
-  if (symbol.includes('SOL')) return 165;
-  if (symbol.includes('AAPL')) return 329;
-  if (symbol.includes('TSLA')) return 352;
-  if (symbol.includes('NVDA')) return 145;
-  if (symbol.includes('CL=')) return 90.2;
-  if (symbol.includes('BZ=')) return 93.5;
-  if (symbol.includes('GC=') || symbol.includes('XAU')) return 2650;
-  if (symbol.includes('SI=')) return 34.5;
-  if (symbol.includes('RELIANCE')) return 1187;
-  if (symbol.includes('JIOPLAT')) return 1119;
-  if (symbol.includes('JIOFIN')) return 320;
-  if (symbol.includes('TCS')) return 3850;
-  if (symbol.includes('EURUSD')) return 1.136;
-  if (symbol.includes('USDINR')) return 86.8;
-  if (symbol.includes('DX-Y')) return 104.5;
-  if (symbol.includes('SPY') || symbol.includes('VOO')) return 764;
-  if (symbol.includes('QQQ')) return 510;
-  if (symbol.includes('BIL')) return 91.6;
-  if (symbol.includes('^TNX')) return 4.45;
-  if (symbol.includes('^NSEI')) return 25000;
-  if (symbol.includes('^BSESN')) return 82000;
-  if (symbol.includes('^NSEBANK')) return 51000;
-  if (symbol.includes('DIXON')) return 14500;
-  if (symbol.includes('POLYCAB')) return 6800;
-  if (symbol.includes('PERSISTENT')) return 5400;
-  if (symbol.includes('RVNL')) return 420;
-  if (symbol.includes('NHPC')) return 85;
-  if (symbol.includes('IBIT')) return 48;
-  if (symbol.includes('RDDT')) return 115;
-  if (symbol.includes('BABA')) return 110;
-  if (symbol.includes('VT')) return 120;
-  if (symbol.includes('JEPI')) return 58;
-  if (symbol.includes('GDX')) return 38;
-  if (symbol.includes('LIT')) return 45;
-  if (symbol.includes('DBA')) return 24;
-  if (symbol.includes('SQQQ')) return 9;
+  const s = symbol.toUpperCase();
+  // Crypto
+  if (s.includes('BTC')) return 81700;
+  if (s.includes('ETH')) return 2600;
+  if (s.includes('SOL')) return 165;
+  if (s.includes('BNB')) return 580;
+  if (s.includes('XRP')) return 0.55;
+  if (s.includes('DOGE')) return 0.14;
+  if (s.includes('ADA')) return 0.35;
+  if (s.includes('AVAX')) return 28.5;
+  if (s.includes('LINK')) return 11.8;
+  if (s.includes('SUI')) return 1.95;
+  if (s.includes('NEAR')) return 4.8;
+
+  // Commodities & Metals (Gold updated to current market levels ~4015 USD/oz)
+  if (s.includes('GC=') || s.includes('XAU') || s.includes('GOLD')) return 4015;
+  if (s.includes('SI=') || s.includes('XAG') || s.includes('SILVER')) return 34.5;
+  if (s.includes('CL=')) return 82.5; // Crude Oil WTI
+  if (s.includes('BZ=')) return 86.2; // Brent Crude
+  if (s.includes('NG=')) return 2.65; // Natural Gas
+  if (s.includes('HG=')) return 4.35; // Copper
+  if (s.includes('PL=')) return 980; // Platinum
+  if (s.includes('PA=')) return 1020; // Palladium
+
+  // Forex
+  if (s.includes('USDINR')) return 86.8;
+  if (s.includes('EURUSD')) return 1.085;
+  if (s.includes('GBPUSD')) return 1.298;
+  if (s.includes('USDJPY')) return 152.4;
+  if (s.includes('AUDUSD')) return 0.665;
+  if (s.includes('USDCAD')) return 1.385;
+  if (s.includes('DX-Y')) return 104.5;
+
+  // Indian Stocks (NSE .NS / BSE .BO) - Real Market Values
+  if (s.includes('RELIANCE')) return 1190;
+  if (s.includes('TCS')) return 3850;
+  if (s.includes('HDFCBANK')) return 1680;
+  if (s.includes('ICICIBANK')) return 1260;
+  if (s.includes('INFY')) return 1845;
+  if (s.includes('BHARTIARTL')) return 1680;
+  if (s.includes('SBIN')) return 815;
+  if (s.includes('LICI')) return 960;
+  if (s.includes('ITC')) return 485;
+  if (s.includes('HINDUNILVR')) return 2450;
+  if (s.includes('LT') && !s.includes('LTC')) return 3550;
+  if (s.includes('BAJFINANCE')) return 6950;
+  if (s.includes('BAJAJFINSV')) return 1750;
+  if (s.includes('MARUTI')) return 12200;
+  if (s.includes('TATAMOTORS') || s.includes('TMPV')) return 890;
+  if (s.includes('TATASTEEL')) return 152;
+  if (s.includes('TITAN')) return 3420;
+  if (s.includes('KOTAKBANK')) return 1780;
+  if (s.includes('AXISBANK')) return 1180;
+  if (s.includes('SUNPHARMA')) return 1880;
+  if (s.includes('CIPLA')) return 1540;
+  if (s.includes('DRREDDY')) return 1270;
+  if (s.includes('ADANIENT')) return 2850;
+  if (s.includes('ADANIPORTS')) return 1390;
+  if (s.includes('WIPRO')) return 540;
+  if (s.includes('HCLTECH')) return 1820;
+  if (s.includes('TECHM')) return 1680;
+  if (s.includes('NTPC')) return 415;
+  if (s.includes('POWERGRID')) return 325;
+  if (s.includes('COALINDIA')) return 465;
+  if (s.includes('ONGC')) return 275;
+  if (s.includes('BPCL')) return 315;
+  if (s.includes('ULTRACEMCO')) return 11100;
+  if (s.includes('GRASIM')) return 2650;
+  if (s.includes('ASIANPAINT')) return 2380;
+  if (s.includes('BRITANNIA')) return 5250;
+  if (s.includes('NESTLEIND')) return 2340;
+  if (s.includes('JSWSTEEL')) return 980;
+  if (s.includes('HINDALCO')) return 690;
+  if (s.includes('EICHERMOT')) return 4850;
+  if (s.includes('M&M') || s.includes('MM.')) return 2890;
+  if (s.includes('HEROMOTOCO')) return 5150;
+  if (s.includes('DIXON')) return 14500;
+  if (s.includes('POLYCAB')) return 6800;
+  if (s.includes('PERSISTENT')) return 5400;
+  if (s.includes('RVNL')) return 420;
+  if (s.includes('NHPC')) return 85;
+  if (s.includes('IRFC')) return 148;
+  if (s.includes('BHEL')) return 235;
+  if (s.includes('BEL')) return 285;
+  if (s.includes('HAL')) return 4350;
+  if (s.includes('TRENT')) return 7150;
+  if (s.includes('ZOMATO')) return 260;
+  if (s.includes('JIOFIN')) return 320;
+  if (s.includes('JIOPLAT')) return 1119;
+  if (s.includes('NIFTYBEES')) return 265;
+  if (s.includes('BANKBEES')) return 545;
+  if (s.includes('GOLDBEES')) return 72;
+  if (s.includes('SILVERBEES')) return 94;
+  if (s.includes('LIQUIDBEES')) return 1000;
+
+  // Indian Indices
+  if (s.includes('^NSEI')) return 25000;
+  if (s.includes('^BSESN')) return 82000;
+  if (s.includes('^NSEBANK')) return 51000;
+
+  // US Stocks & ETFs
+  if (s.includes('AAPL')) return 348;
+  if (s.includes('TSLA')) return 352;
+  if (s.includes('NVDA')) return 145;
+  if (s.includes('MSFT')) return 430;
+  if (s.includes('GOOG') || s.includes('GOOGL')) return 168;
+  if (s.includes('AMZN')) return 188;
+  if (s.includes('META')) return 590;
+  if (s.includes('SPY') || s.includes('VOO')) return 585;
+  if (s.includes('QQQ')) return 510;
+  if (s.includes('BIL')) return 91.6;
+  if (s.includes('^TNX')) return 4.45;
+  if (s.includes('IBIT')) return 48;
+  if (s.includes('RDDT')) return 115;
+  if (s.includes('BABA')) return 110;
+  if (s.includes('VT')) return 120;
+  if (s.includes('JEPI')) return 58;
+  if (s.includes('GDX')) return 38;
+  if (s.includes('LIT')) return 45;
+  if (s.includes('DBA')) return 24;
+  if (s.includes('SQQQ')) return 9;
+
+  // If Indian stock without explicit mapping, realistic mid-cap average
+  if (s.endsWith('.NS') || s.endsWith('.BO')) return 1250;
+
   return 100;
 }
 

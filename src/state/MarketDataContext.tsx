@@ -137,35 +137,35 @@ export function MarketDataProvider({
       };
     } else {
       let cancelled = false;
-      const existingPrice = prices[selectedAsset.symbol];
-      if (existingPrice) {
-        setLivePrice(existingPrice);
-        stopSynthetic = startSyntheticTicks(selectedAsset.symbol, existingPrice, (price) => {
-          if (cancelled) return;
-          setLivePrice(price);
-          updatePrices({ [selectedAsset.symbol]: price });
-        });
+      const initialPrice = prices[selectedAsset.symbol] ?? getBaselinePrice(selectedAsset.symbol);
+      if (initialPrice && initialPrice > 0) {
+        setLivePrice(initialPrice);
       }
 
-      fetchYahooQuote(selectedAsset.quoteSymbol).then(q => {
-        if (cancelled) return;
-        const targetPrice = q?.price ?? existingPrice ?? 100;
-        setLivePrice(targetPrice);
-        updatePrices({ [selectedAsset.symbol]: targetPrice });
-        stopSynthetic?.();
-        stopSynthetic = startSyntheticTicks(selectedAsset.symbol, targetPrice, (price) => {
+      // Fetch authentic live quote immediately
+      const fetchCurrentQuote = () => {
+        fetchYahooQuote(selectedAsset.quoteSymbol).then(q => {
           if (cancelled) return;
-          setLivePrice(price);
-          updatePrices({ [selectedAsset.symbol]: price });
+          if (q?.price && q.price > 0) {
+            setLivePrice(q.price);
+            updatePrices({ [selectedAsset.symbol]: q.price });
+          }
+        }).catch(() => {
+          // Keep initial or last valid price
         });
-      });
+      };
+
+      fetchCurrentQuote();
+
+      // Poll real market quote every 10 seconds without artificial synthetic drift
+      const pollTimer = setInterval(fetchCurrentQuote, 10_000);
 
       return () => {
         cancelled = true;
-        stopSynthetic?.();
+        clearInterval(pollTimer);
       };
     }
-  }, [selectedAsset, updatePrices]);
+  }, [selectedAsset, updatePrices, prices]);
 
   return (
     <MarketDataContext.Provider

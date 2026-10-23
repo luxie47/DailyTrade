@@ -5,7 +5,7 @@ import type { Account } from '../types/account';
 import { formatCurrency } from '../services/storage';
 import { formatAssetPrice, getAssetUSDMultiplier } from '../utils/formatPrice';
 import { LotSelector } from './LotSelector';
-import { lotToUnits, unitsToLot, calculateRequiredMargin } from '../core/trading/lots';
+import { lotToUnits, unitsToLot, calculateRequiredMargin, calculatePotentialPnL, formatPotentialPnL } from '../core/trading/lots';
 
 interface Props {
   asset: Asset;
@@ -223,14 +223,40 @@ export function TradeModal({ asset, currentPrice, account, positionQty, onMarket
                 <AlertTriangle size={10} /> SL
               </button>
               {slEnabled && (
-                <input
-                  className="input flex-1"
-                  type="number"
-                  placeholder="Stop price"
-                  value={sl}
-                  onChange={e => setSl(e.target.value)}
-                  step="any"
-                />
+                <>
+                  <input
+                    className="input flex-1"
+                    type="number"
+                    placeholder="Stop price"
+                    value={sl}
+                    onChange={e => setSl(e.target.value)}
+                    step="any"
+                  />
+                  {(() => {
+                    const parsed = parseFloat(sl);
+                    if (!parsed || isNaN(parsed) || parsed <= 0) return null;
+                    const loss = calculatePotentialPnL(execPrice, parsed, side, lot, undefined, asset.symbol, asset.class);
+                    return (
+                      <span
+                        style={{
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: '#ff3d71',
+                          background: '#0d0d12',
+                          border: '1px solid rgba(255, 61, 113, 0.5)',
+                          borderRadius: 4,
+                          padding: '4px 7px',
+                          whiteSpace: 'nowrap',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
+                        }}
+                        title="Estimated potential loss in dollars"
+                      >
+                        {formatPotentialPnL(loss)}
+                      </span>
+                    );
+                  })()}
+                </>
               )}
             </div>
             {/* Take Profit */}
@@ -250,14 +276,40 @@ export function TradeModal({ asset, currentPrice, account, positionQty, onMarket
                 <Target size={10} /> TP
               </button>
               {tpEnabled && (
-                <input
-                  className="input flex-1"
-                  type="number"
-                  placeholder="Target price"
-                  value={tp}
-                  onChange={e => setTp(e.target.value)}
-                  step="any"
-                />
+                <>
+                  <input
+                    className="input flex-1"
+                    type="number"
+                    placeholder="Target price"
+                    value={tp}
+                    onChange={e => setTp(e.target.value)}
+                    step="any"
+                  />
+                  {(() => {
+                    const parsed = parseFloat(tp);
+                    if (!parsed || isNaN(parsed) || parsed <= 0) return null;
+                    const profit = calculatePotentialPnL(execPrice, parsed, side, lot, undefined, asset.symbol, asset.class);
+                    return (
+                      <span
+                        style={{
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: '#00e676',
+                          background: '#0d0d12',
+                          border: '1px solid rgba(0, 230, 118, 0.5)',
+                          borderRadius: 4,
+                          padding: '4px 7px',
+                          whiteSpace: 'nowrap',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
+                        }}
+                        title="Estimated potential profit in dollars"
+                      >
+                        {formatPotentialPnL(profit)}
+                      </span>
+                    );
+                  })()}
+                </>
               )}
             </div>
           </div>
