@@ -359,3 +359,17 @@ body {
   color: var(--text-muted); text-align: center;
   font-family: var(--font-ui); font-size: 13px;
 }
+
+/* ── Pro Chart Fullscreen & Controls ── */
+.chart-fullscreen-pro {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999 !important;
+  background: #000000 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s ease-out;
+}
+

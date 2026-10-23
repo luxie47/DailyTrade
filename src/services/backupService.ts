@@ -2,6 +2,7 @@ import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
 import type { AppState } from './storage';
 import { loadState, saveState } from './storage';
+import { safeUUID } from '../utils/uuid';
 
 export const BACKUP_FOLDER = 'DailyTrade';
 export const AUTO_BACKUP_FILE = 'dailytrade_autobackup.json';
@@ -201,7 +202,7 @@ export function mergeAppState(currentState: AppState, imported: AppState): AppSt
       }
     } else {
       // Re-map duplicated account ID to preserve both
-      const generatedId = crypto.randomUUID();
+      const generatedId = safeUUID();
       const clonedAcc = { ...importedAcc, id: generatedId, name: `${importedAcc.name} (Restored)` };
       newAccounts.push(clonedAcc);
       if (imported.equityHistory && imported.equityHistory[importedAcc.id]) {
@@ -209,13 +210,13 @@ export function mergeAppState(currentState: AppState, imported: AppState): AppSt
       }
       // Re-map child positions/orders/history
       imported.positions.filter(p => p.accountId === importedAcc.id).forEach(p => {
-        newPositions.push({ ...p, id: crypto.randomUUID(), accountId: generatedId });
+        newPositions.push({ ...p, id: safeUUID(), accountId: generatedId });
       });
       imported.orders.filter(o => o.accountId === importedAcc.id).forEach(o => {
-        newOrders.push({ ...o, id: crypto.randomUUID(), accountId: generatedId });
+        newOrders.push({ ...o, id: safeUUID(), accountId: generatedId });
       });
       imported.history.filter(h => h.accountId === importedAcc.id).forEach(h => {
-        newHistory.push({ ...h, id: crypto.randomUUID(), accountId: generatedId });
+        newHistory.push({ ...h, id: safeUUID(), accountId: generatedId });
       });
     }
   }

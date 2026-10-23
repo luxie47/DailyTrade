@@ -6,6 +6,7 @@ import type { Position, ClosedTrade, Order } from '../types/trade';
 import { formatAssetPrice, getAssetUSDMultiplier } from '../utils/formatPrice';
 import { calculateUnrealizedPnL, calculateTotalEquity, calculateTradeFee } from '../core/portfolio/calculations';
 import { validateMarketBuy, validateMarketSell, validateLimitOrder, shouldOrderFill } from '../core/trading/orders';
+import { safeUUID } from '../utils/uuid';
 
 export type NotificationCallback = (title: string, message: string, type: 'success' | 'error' | 'info') => void;
 
@@ -58,6 +59,7 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
 
   // ── Market Sell / Close Position ─────────────────────────────────────────
   const closePosition = useCallback((positionId: string, currentPriceUSD: number): void => {
+    if (!currentPriceUSD || currentPriceUSD <= 0) return; // BUG-01: never close at price=0
     setState(prev => {
       const pos = prev.positions.find(p => p.id === positionId);
       if (!pos) return prev;
@@ -70,9 +72,10 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
       const fee = calculateTradeFee(pos.lot, pos.symbol);
       const netPnl = grossPnl - fee;
       const marginCost = pos.entryPriceUSD * pos.quantity * mult;
-      const proceeds = isShort ? Math.max(0, marginCost + netPnl) : currentPriceUSD * pos.quantity * mult - fee;
+      // BUG-05: long proceeds can go negative if fee > gross; clamp to 0
+      const proceeds = isShort ? Math.max(0, marginCost + netPnl) : Math.max(0, currentPriceUSD * pos.quantity * mult - fee);
       const trade: ClosedTrade = {
-        id: crypto.randomUUID(),
+        id: safeUUID(),
         accountId: prev.activeAccountId,
         symbol: pos.symbol,
         side: pos.side ?? 'long',
@@ -131,7 +134,7 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
 
       setState(prev => {
         const trade: ClosedTrade = {
-          id: crypto.randomUUID(),
+          id: safeUUID(),
           accountId: prev.activeAccountId,
           symbol: existingShort.symbol,
           side: 'short',
@@ -177,7 +180,7 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
     setState(prev => {
       const acc = prev.accounts.find(a => a.id === prev.activeAccountId)!;
       const updatedAcc = { ...acc, cashUSD: acc.cashUSD - cost };
-      const posId = crypto.randomUUID();
+      const posId = safeUUID();
       const newPos: Position = {
         id: posId,
         accountId: prev.activeAccountId,
@@ -193,12 +196,12 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
       // Attach SL/TP as pending orders linked to positionId
       const newOrders: Order[] = [];
       if (stopLoss) newOrders.push({
-        id: crypto.randomUUID(), accountId: prev.activeAccountId,
+        id: safeUUID(), accountId: prev.activeAccountId,
         symbol, side: 'sell', type: 'stop_loss', quantity, lot,
         limitPrice: stopLoss, positionId: posId, status: 'pending', createdAt: Date.now(),
       });
       if (takeProfit) newOrders.push({
-        id: crypto.randomUUID(), accountId: prev.activeAccountId,
+        id: safeUUID(), accountId: prev.activeAccountId,
         symbol, side: 'sell', type: 'take_profit', quantity, lot,
         limitPrice: takeProfit, positionId: posId, status: 'pending', createdAt: Date.now(),
       });
@@ -237,7 +240,7 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
 
       setState(prev => {
         const trade: ClosedTrade = {
-          id: crypto.randomUUID(),
+          id: safeUUID(),
           accountId: prev.activeAccountId,
           symbol: pos.symbol,
           side: 'long',
@@ -284,7 +287,7 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
       setState(prev => {
         const acc = prev.accounts.find(a => a.id === prev.activeAccountId)!;
         const updatedAcc = { ...acc, cashUSD: acc.cashUSD - cost };
-        const posId = crypto.randomUUID();
+        const posId = safeUUID();
         const newPos: Position = {
           id: posId,
           accountId: prev.activeAccountId,
@@ -299,12 +302,12 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
         };
         const newOrders: Order[] = [];
         if (stopLoss) newOrders.push({
-          id: crypto.randomUUID(), accountId: prev.activeAccountId,
+          id: safeUUID(), accountId: prev.activeAccountId,
           symbol, side: 'buy', type: 'stop_loss', quantity, lot,
           limitPrice: stopLoss, positionId: posId, status: 'pending', createdAt: Date.now(),
         });
         if (takeProfit) newOrders.push({
-          id: crypto.randomUUID(), accountId: prev.activeAccountId,
+          id: safeUUID(), accountId: prev.activeAccountId,
           symbol, side: 'buy', type: 'take_profit', quantity, lot,
           limitPrice: takeProfit, positionId: posId, status: 'pending', createdAt: Date.now(),
         });
@@ -327,7 +330,20 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
       const pos = prev.positions.find(p => p.id === positionId);
       if (!pos) return prev;
 
-      const exitSide: 'buy' | 'sell' = pos.side === 'short' ? 'buy' : 'sell';
+      const isShort = pos.side === 'short';
+      const entry = pos.entryPriceUSD;
+
+      // BUG-03/04: Validate SL/TP direction to prevent instant auto-fills
+      // Long: SL must be BELOW entry, TP must be ABOVE entry
+      // Short: SL must be ABOVE entry, TP must be BELOW entry
+      const validSl = !stopLoss || stopLoss <= 0 ? undefined
+        : isShort ? (stopLoss > entry ? stopLoss : undefined)   // short SL must be above entry
+        : (stopLoss < entry ? stopLoss : undefined);             // long SL must be below entry
+      const validTp = !takeProfit || takeProfit <= 0 ? undefined
+        : isShort ? (takeProfit < entry ? takeProfit : undefined) // short TP must be below entry
+        : (takeProfit > entry ? takeProfit : undefined);          // long TP must be above entry
+
+      const exitSide: 'buy' | 'sell' = isShort ? 'buy' : 'sell';
 
       // Filter out existing SL/TP orders for this position
       const remainingOrders = prev.orders.filter(o =>
@@ -335,40 +351,51 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
         !(o.symbol === pos.symbol && o.accountId === pos.accountId && (o.type === 'stop_loss' || o.type === 'take_profit'))
       );
       const newOrders: Order[] = [];
-      if (stopLoss && stopLoss > 0) {
+      if (validSl) {
         newOrders.push({
-          id: crypto.randomUUID(),
+          id: safeUUID(),
           accountId: pos.accountId,
           symbol: pos.symbol,
           side: exitSide,
           type: 'stop_loss',
           quantity: pos.quantity,
           lot: pos.lot,
-          limitPrice: stopLoss,
+          limitPrice: validSl,
           positionId,
           status: 'pending',
           createdAt: Date.now(),
         });
       }
-      if (takeProfit && takeProfit > 0) {
+      if (validTp) {
         newOrders.push({
-          id: crypto.randomUUID(),
+          id: safeUUID(),
           accountId: pos.accountId,
           symbol: pos.symbol,
           side: exitSide,
           type: 'take_profit',
           quantity: pos.quantity,
           lot: pos.lot,
-          limitPrice: takeProfit,
+          limitPrice: validTp,
           positionId,
           status: 'pending',
           createdAt: Date.now(),
         });
       }
+
+      // Notify if any value was silently rejected
+      const rejectedSl = stopLoss && stopLoss > 0 && !validSl;
+      const rejectedTp = takeProfit && takeProfit > 0 && !validTp;
+      if (rejectedSl || rejectedTp) {
+        // Schedule via microtask to avoid calling onNotify inside setState
+        const slMsg = rejectedSl ? ('Stop Loss must be ' + (isShort ? 'above' : 'below') + ' entry price. ') : '';
+        const tpMsg = rejectedTp ? ('Take Profit must be ' + (isShort ? 'below' : 'above') + ' entry price.') : '';
+        queueMicrotask(() => onNotify?.('Invalid SL/TP', slMsg + tpMsg, 'error'));
+      }
+
       return {
         ...prev,
         positions: prev.positions.map(p =>
-          p.id === positionId ? { ...p, stopLoss, takeProfit } : p
+          p.id === positionId ? { ...p, stopLoss: validSl, takeProfit: validTp } : p
         ),
         orders: [...remainingOrders, ...newOrders],
       };
@@ -385,7 +412,7 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
     setState(prev => ({
       ...prev,
       orders: [...prev.orders, {
-        id: crypto.randomUUID(),
+        id: safeUUID(),
         accountId: prev.activeAccountId,
         symbol, side, type: 'limit', quantity, lot, limitPrice,
         status: 'pending', createdAt: Date.now(),
@@ -404,6 +431,16 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
     }));
     onNotify?.('Order Cancelled', 'Pending order was cancelled', 'info');
   }, [setState, onNotify]);
+
+  // ── Update Limit Order Price (Interactive Drag) ──────────────────────────
+  // BUG-14: No toast during drag — silent update only. Toast fires on pointerUp from chart.
+  const updateLimitOrderPrice = useCallback((orderId: string, newPrice: number) => {
+    setState(prev => ({
+      ...prev,
+      orders: prev.orders.map(o => o.id === orderId ? { ...o, limitPrice: newPrice } : o),
+    }));
+    // No onNotify here — fires 60× per second during drag, would spam toasts
+  }, [setState]);
 
   // ── Check pending limit, stop loss, and take profit orders against prices ──
   const checkLimitOrders = useCallback((prices: Record<string, number>) => {
@@ -433,7 +470,7 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
           const marginCost = pos.entryPriceUSD * fillQty * mult;
           const proceeds = isShort ? Math.max(0, marginCost + pnl) : price * fillQty * mult;
           const trade: ClosedTrade = {
-            id: crypto.randomUUID(), accountId: order.accountId, symbol: order.symbol,
+            id: safeUUID(), accountId: order.accountId, symbol: order.symbol,
             side: pos.side ?? 'long',
             quantity: fillQty,
             lot: pos.lot || order.lot,
@@ -495,7 +532,7 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
             ...updated,
             accounts: updated.accounts.map(a => a.id === order.accountId ? { ...a, cashUSD: a.cashUSD - cost } : a),
             positions: [...updated.positions, {
-              id: crypto.randomUUID(), accountId: order.accountId,
+              id: safeUUID(), accountId: order.accountId,
               symbol: order.symbol, side: 'long', quantity: order.quantity,
               lot: order.lot,
               entryPriceUSD: price, entryTime: Date.now(),
@@ -504,6 +541,10 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
           };
           const sizeLabel = order.lot ? `${order.lot} lot` : `${order.quantity} units`;
           onNotify?.('Limit Buy Filled', `Bought ${sizeLabel} ${order.symbol} @ ${formatAssetPrice(price, order.symbol)}`, 'success');
+        } else if (order.side === 'sell' && order.type === 'limit') {
+          // BUG-06: Orphaned sell limit (no matching position) — cancel it instead of looping forever
+          updated = { ...updated, orders: updated.orders.map(o => o.id === order.id ? { ...o, status: 'cancelled' as const } : o) };
+          onNotify?.('Limit Sell Cancelled', `No position found for ${order.symbol} limit sell — order cancelled`, 'info');
         }
       }
       return updated;
@@ -512,7 +553,7 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
 
   // ── Account management ────────────────────────────────────────────────────
   const createAccount = useCallback((name: string, currency: Currency, startingCashUSD: number) => {
-    const id = crypto.randomUUID();
+    const id = safeUUID();
     setState(prev => ({
       ...prev,
       accounts: [...prev.accounts, {
@@ -587,7 +628,7 @@ export function useTradingEngine(onNotify?: NotificationCallback) {
   return {
     state, activeAccount, positions, orders, history,
     calcUnrealisedPnL, calcEquity, recordEquity,
-    marketBuy, marketSell, closePosition, placeLimitOrder, cancelOrder, checkLimitOrders,
+    marketBuy, marketSell, closePosition, placeLimitOrder, cancelOrder, updateLimitOrderPrice, checkLimitOrders,
     updatePositionSLTP,
     createAccount, switchAccount, topUpAccount, resetAccount, deleteAccount, updateAccountCurrency,
     replaceState,

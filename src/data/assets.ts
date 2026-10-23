@@ -260,6 +260,7 @@ export const ASSETS: Asset[] = [
   { symbol:'INDUSINDBK.NS', name:'IndusInd Bank',       class:'stock', quoteSymbol:'INDUSINDBK.NS', iconLetters:'IIB',  iconColor:'#7f1d1d' },
   { symbol:'ZOMATO.NS',     name:'Zomato',              class:'stock', quoteSymbol:'ETERNAL.NS',     iconLetters:'ZOM',  iconColor:'#e11d48' },
   { symbol:'JIOFIN.NS',     name:'Jio Financial Services',class:'stock',quoteSymbol:'JIOFIN.NS',    iconLetters:'JIO',  iconColor:'#004c8f' },
+  { symbol:'JIOPLAT.NS',    name:'Jio Platforms (IPO)', class:'stock', quoteSymbol:'JIOPLAT.NS',   iconLetters:'JIO',  iconColor:'#0a58ca' },
   { symbol:'PAYTM.NS',      name:'Paytm (One97)',       class:'stock', quoteSymbol:'PAYTM.NS',      iconLetters:'PAYTM',iconColor:'#00b9f5' },
   { symbol:'TRENT.NS',      name:'Trent (Tata Westside/Zudio)',class:'stock',quoteSymbol:'TRENT.NS',iconLetters:'TRNT',iconColor:'#6d28d9' },
   { symbol:'BEL.NS',        name:'Bharat Electronics',  class:'stock', quoteSymbol:'BEL.NS',        iconLetters:'BEL',  iconColor:'#0369a1' },

@@ -3,6 +3,7 @@ import type { Position, ClosedTrade, Order } from '../types/trade';
 import { CURRENCIES } from '../types/account';
 
 import { STORAGE_KEYS } from '../config/constants';
+import { safeUUID } from '../utils/uuid';
 
 const KEY = STORAGE_KEYS.APP_STATE;
 
@@ -16,7 +17,7 @@ export interface AppState {
 }
 
 function defaults(): AppState {
-  const id = crypto.randomUUID();
+  const id = safeUUID();
   return {
     accounts: [{
       id,

@@ -281,57 +281,101 @@ export function PositionsList({ positions, orders, history, prices, account, onC
                 PENDING ORDERS ({pendingOrders.length})
               </span>
             </div>
-            {pendingOrders.map(o => (
-              <div
-                key={o.id}
-                onClick={() => handleOpenStock(o.symbol)}
-                style={{
-                  padding: '8px 12px',
-                  borderBottom: '1px solid var(--border-dim)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  cursor: onSelectAsset ? 'pointer' : 'default',
-                }}
-                title={onSelectAsset ? `Click to open ${o.symbol} in Trade tab` : undefined}
-              >
-                <Clock size={12} color="var(--text-muted)" style={{ flexShrink: 0 }} />
-                <span className="mono" style={{ fontSize: 11, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: onSelectAsset ? 'underline' : 'none', textUnderlineOffset: 2 }}>
-                  {o.type === 'stop_loss' ? 'STOP' : o.type === 'take_profit' ? 'TARGET' : o.side.toUpperCase()}{' '}
-                  {o.symbol.replace('.NS','').replace('USDT','')} @ {formatAssetPrice(o.limitPrice ?? 0, o.symbol)} × {o.lot != null ? `${o.lot.toFixed(2)}L` : o.quantity}
-                </span>
-                <span
-                  className="badge"
+            {pendingOrders.map(o => {
+              const isBuy = o.side === 'buy';
+              const cleanSymbol = o.symbol.replace('.NS', '').replace('USDT', '');
+              const qtyLabel = o.lot != null ? `${o.lot.toFixed(2)} Lot` : `${o.quantity} ${cleanSymbol}`;
+              const priceLabel = formatAssetPrice(o.limitPrice ?? 0, o.symbol);
+
+              let badgeText = isBuy ? 'Limit Buy' : 'Limit Sell';
+              let badgeColor = isBuy ? 'var(--color-bull)' : 'var(--color-bear)';
+              let badgeBg = isBuy ? 'var(--bg-bull)' : 'var(--bg-bear)';
+
+              if (o.type === 'stop_loss') {
+                badgeText = 'Stop Loss';
+                badgeColor = 'var(--color-bear)';
+                badgeBg = 'var(--bg-bear)';
+              } else if (o.type === 'take_profit') {
+                badgeText = 'Take Profit';
+                badgeColor = 'var(--color-bull)';
+                badgeBg = 'var(--bg-bull)';
+              }
+
+              return (
+                <div
+                  key={o.id}
+                  onClick={() => handleOpenStock(o.symbol)}
                   style={{
-                    fontSize: 9,
-                    flexShrink: 0,
-                    background: o.type === 'stop_loss' ? 'var(--bg-bear)' : o.type === 'take_profit' ? 'var(--bg-bull)' : 'var(--bg-subtle)',
-                    color: o.type === 'stop_loss' ? 'var(--color-bear)' : o.type === 'take_profit' ? 'var(--color-bull)' : 'var(--text-muted)',
-                    border: `1px solid ${o.type === 'stop_loss' ? 'var(--color-bear)' : o.type === 'take_profit' ? 'var(--color-bull)' : 'var(--border-dim)'}`,
+                    padding: '8px 12px',
+                    borderBottom: '1px solid var(--border-dim)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 8,
+                    cursor: onSelectAsset ? 'pointer' : 'default',
+                    background: 'var(--bg-canvas)',
                   }}
+                  title={onSelectAsset ? `Click to open ${o.symbol} in Trade tab` : undefined}
                 >
-                  {o.type === 'stop_loss' ? 'STOP LOSS' : o.type === 'take_profit' ? 'TARGET' : 'LIMIT'}
-                </span>
-                {onCancelOrder && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onCancelOrder(o.id);
-                    }}
-                    title="Cancel order"
-                    style={{
-                      background: 'none', border: '1px solid var(--border-dim)',
-                      color: 'var(--color-bear)', cursor: 'pointer', padding: '2px 6px',
-                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <X size={10} />
-                  </button>
-                )}
-              </div>
-            ))}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, flex: 1 }}>
+                    <Clock size={12} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+                    <span
+                      className="badge"
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        letterSpacing: '0.03em',
+                        flexShrink: 0,
+                        padding: '1px 5px',
+                        background: badgeBg,
+                        color: badgeColor,
+                        border: `1px solid ${badgeColor}`,
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      {badgeText}
+                    </span>
+                    <span
+                      className="mono"
+                      style={{
+                        fontSize: 11,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        textDecoration: onSelectAsset ? 'underline' : 'none',
+                        textUnderlineOffset: 2,
+                      }}
+                    >
+                      {qtyLabel} @ <span style={{ fontWeight: 700 }}>{priceLabel}</span>
+                    </span>
+                  </div>
+                  {onCancelOrder && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCancelOrder(o.id);
+                      }}
+                      title="Cancel order"
+                      className="btn btn-ghost"
+                      style={{
+                        border: '1px solid var(--border-dim)',
+                        color: 'var(--color-bear)',
+                        cursor: 'pointer',
+                        padding: '2px 6px',
+                        height: 24,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <X size={10} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </>
         );
       })()}
@@ -514,7 +558,7 @@ export function PositionsList({ positions, orders, history, prices, account, onC
                   </span>
                   <span
                     style={{ fontSize: 10, cursor: 'pointer', textDecoration: 'underline' }}
-                    onClick={() => setModalSl((sltpPos.entryPriceUSD * (sltpPos.side === 'short' ? 1.05 : 0.95)).toFixed(2))}
+                    onClick={() => { const v = sltpPos.entryPriceUSD * (sltpPos.side === 'short' ? 1.05 : 0.95); setModalSl(v.toFixed(v < 1 ? 5 : v < 100 ? 4 : 2)); }}
                   >
                     {sltpPos.side === 'short' ? '+5% Preset' : '-5% Preset'}
                   </span>
@@ -537,7 +581,7 @@ export function PositionsList({ positions, orders, history, prices, account, onC
                   </span>
                   <span
                     style={{ fontSize: 10, cursor: 'pointer', textDecoration: 'underline' }}
-                    onClick={() => setModalTp((sltpPos.entryPriceUSD * (sltpPos.side === 'short' ? 0.95 : 1.05)).toFixed(2))}
+                    onClick={() => { const v = sltpPos.entryPriceUSD * (sltpPos.side === 'short' ? 0.95 : 1.05); setModalTp(v.toFixed(v < 1 ? 5 : v < 100 ? 4 : 2)); }}
                   >
                     {sltpPos.side === 'short' ? '-5% Preset' : '+5% Preset'}
                   </span>

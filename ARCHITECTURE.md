@@ -23,7 +23,11 @@ src/
 │   ├── TradingViewChart.tsx     # Lightweight Charts engine & live price tracker
 │   ├── TradeModal.tsx           # Full order entry modal with SL/TP & lot controls
 │   ├── AssetTradePanel.tsx      # Order book, 24h stats, and 1-tap trade panel
-│   └── PositionsList.tsx        # 4-metric account HUD, open holdings & history
+│   ├── PositionsList.tsx        # 4-metric account HUD, open holdings & history
+│   └── UpdateModal.tsx          # Full-screen system update modal with in-button progress
+│
+├── hooks/                 # Custom reactive hooks
+│   └── useAppUpdate.ts          # Remote GitHub release inspector & APK installer
 │
 ├── core/                  # Pure domain logic (independent of React/DOM)
 │   ├── portfolio/
@@ -54,6 +58,10 @@ src/
 │   ├── TradingContext.tsx       # Trading engine context provider
 │   ├── MarketDataContext.tsx   # Live prices, ticker cache & subscriptions
 │   └── UIContext.tsx            # Navigation tabs, modals & toasts
+│
+├── utils/                 # General utility modules
+│   ├── formatMarkdown.ts        # Zero-dependency inline markdown parser
+│   └── uuid.ts                  # Cryptographically random ID generator
 │
 └── services/              # Infrastructure facades (storage, alerts, backups)
     ├── backupService.ts         # Android Documents auto-backup & restore
@@ -93,9 +101,10 @@ All critical trading rules and mathematical calculations live in pure, framework
 
 ## 3. Interactive Chart Architecture & UI Affordances
 
-### A. Live Candle Bucket Alignment
+### A. Live Candle Bucket Alignment & Grid Snapping
 - Incoming streaming ticks anchor strictly to the active timeframe bar bucket (`curTime + stepSec`).
 - High, Low, and Close update in-place without altering timescale width or triggering chart re-renders.
+- Fallback candle generator timestamps are mathematically snapped to `Math.floor(now / stepSec) * stepSec` grid, eliminating distorted bars or out-of-order time collisions.
 
 ### B. Two-Axis Interactive Scaling
 - **Vertical Price Scale (Height Zoom)**: Dragging along the right-hand price scale expands or compresses vertical price intervals.
@@ -104,6 +113,11 @@ All critical trading rules and mathematical calculations live in pure, framework
 
 ### C. Tactile Action Affordances
 - Position protection features elevated, stateful `<Shield />` action buttons with amber active glows, green protected states, and tactile micro-steppers for instantaneous Stop Loss and Take Profit adjustments.
+
+### D. Interactive On-Chart SL/TP Drag Controls
+- Users can directly grab and vertically slide red dashed Stop Loss (`SL`) and green dashed Take Profit (`TP`) lines directly on the candlestick chart canvas.
+- Pointer move events smoothly map canvas Y-coordinates to price via Lightweight Charts' `series.coordinateToPrice()` and snap to asset precision.
+- Drag release immediately commits updated protective stop thresholds through `onUpdateSLTP` directly to the active position without modal interruption.
 
 ---
 
@@ -127,6 +141,7 @@ All critical trading rules and mathematical calculations live in pure, framework
 ```
 
 1. **Crypto Assets**: Live 24/7 streaming via Binance combined WebSocket streams (`@ticker`).
+   - **Persistent Regional Circuit-Breaker**: In regions where Binance is ISP-throttled or DNS-blocked, connections automatically trip into a 1-hour quiet period backed by `localStorage` and `sessionStorage`. This prevents repeated failed connection attempts and seamlessly shifts to real Yahoo quotes and calm synthetic micro-ticks with zero user-perceptible delay.
 2. **Stocks / Forex / Commodities**: Fetched through Yahoo Finance v8 chart APIs with multi-tier CORS resilience.
 3. **Synthetic Tick Engine**: When markets are closed or offline, an organic Geometric Brownian Motion (GBM) tick engine maintains continuous live micro-fluctuations.
 
@@ -137,3 +152,18 @@ All critical trading rules and mathematical calculations live in pure, framework
 - **Widget Bridge**: `syncAndroidWidget` updates Android AppWidget providers (`TinyTicker` and `PortfolioHUD`) via Capacitor's `WidgetBridgePlugin`.
 - **Zero Local Gradle Rule**: Local builds run strictly via `npm run build` (`tsc && vite build`). Android APK compilation is handled exclusively in the cloud via GitHub Actions.
 - **Local Sandbox**: 100% on-device state persistence with automated backups exported to `Documents/DailyTrade`.
+
+---
+
+## 6. In-App System Update & Zero-Dependency Markdown Engine
+
+### A. Fullscreen System Update Modal (`src/components/UpdateModal.tsx`)
+- **Immersive Presentation**: Full-screen modal with camera notch safe area padding (`env(safe-area-inset-top)`).
+- **In-Button Progress Bar**: Features an integrated download percentage bar tracking progress directly inside the action button.
+- **One-Tap Package Preparation**: Smoothly transitions from `UPDATE` (percentage tracking) into an active `INSTALL NOW` action that directly opens the verified APK via Android Package Installer (`window.open(url, '_system')`).
+- **Dynamic Release Notes**: Extracts and parses the top release highlights from GitHub Releases API for the incoming build while discarding obsolete versions and markdown headers.
+
+### B. Zero-Dependency Markdown Formatting (`src/utils/formatMarkdown.ts`)
+- **Lightweight Parser**: Safe, zero-npm-dependency regex formatter converting `**bold**`, `*italic*`, and `` `code` `` tags into styled HTML.
+- **Security**: Escapes HTML entities (`&`, `<`, `>`, `"`, `'`) before applying token replacements to prevent script injection.
+

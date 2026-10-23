@@ -37,5 +37,9 @@ android/local.properties
 # Launch videos & brag outputs
 brag-output/
 brag-output*
+videos/
+gitignore/
 *.mp4
 *.webm
+*.zip
+Orion-Store*

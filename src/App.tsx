@@ -16,7 +16,9 @@ import { AssetTradePanel }  from './components/AssetTradePanel';
 import { AccountModal }     from './components/AccountModal';
 import { ExportModal }      from './components/ExportModal';
 import { ImportModal }      from './components/ImportModal';
+import { UpdateModal }      from './components/UpdateModal';
 import { ToastContainer, type ToastMessage } from './components/Toast';
+import { useAppUpdate }     from './hooks/useAppUpdate';
 
 import { ASSETS, ASSET_MAP } from './data/assets';
 import type { Asset, Timeframe } from './types/market';
@@ -25,7 +27,7 @@ import { checkAndAutoRestore } from './services/backupService';
 import { checkAlerts, dispatchSystemNotification, checkCheesyMarketNotification } from './services/priceAlerts';
 import {
   fetchBinanceCandles, fetchCandles, fetchYahooQuote, fetchBatchYahooQuotes,
-  subscribeLiveQuote, subscribeAllQuotes, startSyntheticTicks,
+  subscribeLiveQuote, subscribeAllQuotes, startSyntheticTicks, getBaselinePrice,
 } from './services/marketData';
 import type { Candle } from './types/market';
 import { Download, Shield } from 'lucide-react';
@@ -33,6 +35,7 @@ import { formatAssetPrice, getAssetUSDMultiplier } from './utils/formatPrice';
 import { syncAndroidWidget } from './native/widgetBridge';
 import { TIMERS, STORAGE_KEYS } from './config/constants';
 import { ErrorBoundary } from './shared/components/ErrorBoundary';
+import { safeUUID } from './utils/uuid';
 
 const DEFAULT_ASSET = ASSETS[0]; // BTC
 
@@ -40,7 +43,7 @@ export default function App() {
   // Toast notifications state
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const addToast = useCallback((title: string, message?: string, type: 'success' | 'error' | 'info' = 'info') => {
-    const id = crypto.randomUUID();
+    const id = safeUUID();
     setToasts(prev => [...prev.slice(-3), { id, title, message, type }]);
   }, []);
   const dismissToast = useCallback((id: string) => {
@@ -53,6 +56,7 @@ export default function App() {
   }, [addToast]);
 
   const engine = useTradingEngine(handleNotify);
+  const updater = useAppUpdate();
   const [tab, setTab] = useState<Tab>('trade');
   const [selectedAsset, setSelectedAsset] = useState<Asset>(DEFAULT_ASSET);
   const [detailAsset, setDetailAsset] = useState<Asset | null>(null);
@@ -153,7 +157,7 @@ export default function App() {
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
-    setCandles([]);
+    // Keep existing candles visible while loading new data to avoid blank chart flash on phones
     const isCrypto = selectedAsset.class === 'crypto';
     const loadCandles = isCrypto
       ? fetchBinanceCandles(selectedAsset.quoteSymbol, timeframe, controller.signal)
@@ -183,12 +187,44 @@ export default function App() {
     let stopSynthetic: (() => void) | null = null;
 
     if (isCrypto) {
-      // Binance live WebSocket for crypto
+      let cancelled = false;
+      let stopSynthetic: (() => void) | null = null;
+      let receivedWSQuote = false;
+
+      // 1. Fetch real market price from Yahoo Finance (e.g. BTC-USD)
+      const yahooSymbol = selectedAsset.quoteSymbol.replace('USDT', '-USD');
+      fetchYahooQuote(yahooSymbol).then(q => {
+        if (cancelled || !q?.price) return;
+        setLivePrice(q.price);
+        handlePricesUpdate({ [selectedAsset.symbol]: q.price });
+
+        // Start calm micro-ticks anchored to the real Yahoo price
+        if (!receivedWSQuote && !stopSynthetic) {
+          stopSynthetic = startSyntheticTicks(selectedAsset.symbol, q.price, (price) => {
+            if (cancelled || receivedWSQuote) return;
+            setLivePrice(price);
+            handlePricesUpdate({ [selectedAsset.symbol]: price });
+            engine.checkLimitOrders({ [selectedAsset.symbol]: price });
+          }, 1500);
+        }
+      });
+
+      // 2. Also listen to Binance WS in case unblocked
       const unsub = subscribeLiveQuote(selectedAsset.symbol, (q) => {
+        receivedWSQuote = true;
+        if (stopSynthetic) {
+          stopSynthetic();
+          stopSynthetic = null;
+        }
         setLivePrice(q.price);
         handlePricesUpdate({ [selectedAsset.symbol]: q.price });
       });
-      return unsub;
+
+      return () => {
+        cancelled = true;
+        stopSynthetic?.();
+        unsub();
+      };
     } else {
       let cancelled = false;
       const existingPrice = prices[selectedAsset.symbol];
@@ -223,11 +259,8 @@ export default function App() {
     }
   }, [selectedAsset, handlePricesUpdate]);
 
-  // Check limit orders on every crypto price update too
-  useEffect(() => {
-    if (!livePrice || !selectedAsset) return;
-    engine.checkLimitOrders({ [selectedAsset.symbol]: livePrice });
-  }, [livePrice, selectedAsset]);
+  // Note: checkLimitOrders is already called inside handlePricesUpdate on every tick.
+  // No redundant useEffect needed here (BUG-11 removed double-check).
 
   // Record equity snapshot every 30 seconds
   const equityTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -346,6 +379,12 @@ export default function App() {
               onTimeframeChange={setTimeframe}
               loading={loading}
               onBack={() => setTab('markets')}
+              rawSymbol={selectedAsset.symbol}
+              orders={engine.orders}
+              onCancelOrder={engine.cancelOrder}
+              onUpdateLimitOrderPrice={engine.updateLimitOrderPrice}
+              activePosition={engine.positions.find(p => p.symbol === selectedAsset.symbol)}
+              onUpdateSLTP={engine.updatePositionSLTP}
             />
 
             {/* Asset info + Details + Trade button */}
@@ -391,7 +430,7 @@ export default function App() {
                     className="btn btn-bull"
                     style={{ fontSize: 13, fontWeight: 700, padding: '11px 22px', letterSpacing: '0.05em' }}
                     onClick={() => setShowTradeModal(true)}
-                    disabled={!curPrice}
+                    disabled={!curPrice || showTradeModal}
                   >
                     TRADE
                   </button>
@@ -511,7 +550,7 @@ export default function App() {
                             alignItems: 'center',
                             boxShadow: '0 1px 3px rgba(255,61,113,0.3)',
                           }}
-                          onClick={() => engine.closePosition(pos.id, cur)}
+                          onClick={() => { engine.closePosition(pos.id, cur); setSltpEditId(null); }}
                         >
                           CLOSE
                         </button>
@@ -764,6 +803,20 @@ export default function App() {
             );
           }}
           onClose={() => setShowImportModal(false)}
+        />
+      )}
+
+      {/* ── In-App System Updater Modal ─────────────────────────── */}
+      {updater.showModal && updater.updateInfo && (
+        <UpdateModal
+          updateInfo={updater.updateInfo}
+          currentVersion={updater.currentVersion}
+          isDownloading={updater.isDownloading}
+          downloadProgress={updater.downloadProgress}
+          isReadyToInstall={updater.isReadyToInstall}
+          onStartDownload={updater.startDownload}
+          onInstall={updater.triggerInstall}
+          onClose={updater.dismiss}
         />
       )}
     </div>

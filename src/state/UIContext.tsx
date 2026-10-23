@@ -4,6 +4,7 @@ import { ASSETS } from '../data/assets';
 import { STORAGE_KEYS } from '../config/constants';
 import type { ToastMessage } from '../components/Toast';
 import { dispatchSystemNotification } from '../services/priceAlerts';
+import { safeUUID } from '../utils/uuid';
 
 export type Tab = 'trade' | 'markets' | 'portfolio' | 'accounts';
 export type AccountModalView = 'list' | 'create' | 'about';
@@ -78,7 +79,7 @@ export function UIProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const addToast = useCallback((title: string, message?: string, type: 'success' | 'error' | 'info' = 'info') => {
-    const id = crypto.randomUUID();
+    const id = safeUUID();
     setToasts(prev => [...prev.slice(-3), { id, title, message, type }]);
   }, []);
 

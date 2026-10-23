@@ -19,6 +19,7 @@ interface TradingContextValue {
   updatePositionSLTP: (positionId: string, stopLoss?: number, takeProfit?: number) => void;
   placeLimitOrder: (symbol: string, side: 'buy' | 'sell', quantity: number, limitPrice: number) => string | null;
   cancelOrder: (orderId: string) => void;
+  updateLimitOrderPrice: (orderId: string, newPrice: number) => void;
   checkLimitOrders: (prices: Record<string, number>) => void;
   switchAccount: (id: string) => void;
   createAccount: (name: string, currency: Currency, startingCash: number) => void;

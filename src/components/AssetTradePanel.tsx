@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Zap, BarChart2, Layers } from 'lucide-react';
 import type { Asset, Candle } from '../types/market';
-import type { Account } from '../types/account';
+import { CURRENCIES, type Account } from '../types/account';
 import type { Position, Order } from '../types/trade';
 import { formatCurrency, formatPct } from '../services/storage';
 import { formatAssetPrice, getAssetUSDMultiplier } from '../utils/formatPrice';
@@ -43,7 +43,13 @@ export function AssetTradePanel({
   onOpenStatsModal,
 }: Props) {
   const [activeTab, setActiveTab] = useState<SubTab>('orderbook');
-  const [quickAmountUSD, setQuickAmountUSD] = useState<string>('500');
+  const curConfig = CURRENCIES.find(c => c.code === account.currency) ?? CURRENCIES[0];
+  const [quickAmount, setQuickAmount] = useState<string>((500 * curConfig.usdRate).toFixed(0));
+
+  // BUG-08: Reset quick amount when asset changes so stale values don't carry over
+  useEffect(() => {
+    setQuickAmount((500 * curConfig.usdRate).toFixed(0));
+  }, [asset.symbol]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Compute 24h stats from available candle history
   const stats24h = useMemo(() => {
@@ -98,16 +104,17 @@ export function AssetTradePanel({
   }, [currentPrice]);
 
   // Quick trade calculations
-  const maxCash = Math.max(0, account.cashUSD);
+  const maxCashInCurrency = Math.max(0, account.cashUSD * curConfig.usdRate);
   const handleQuickPercent = (pct: number) => {
-    const val = (maxCash * pct).toFixed(0);
-    setQuickAmountUSD(val);
+    const val = (maxCashInCurrency * pct).toFixed(0);
+    setQuickAmount(val);
   };
 
   /** Execute a quick market trade. Side is explicit to prevent swap bugs. */
   const executeQuickTrade = (action: TradeAction) => {
-    const usd = parseFloat(quickAmountUSD);
-    if (!usd || usd <= 0 || !currentPrice || currentPrice <= 0) return;
+    const amountInCurrency = parseFloat(quickAmount);
+    if (!amountInCurrency || amountInCurrency <= 0 || !currentPrice || currentPrice <= 0) return;
+    const usd = amountInCurrency / curConfig.usdRate;
     const priceUSD = currentPrice * getAssetUSDMultiplier(asset.symbol);
 
     if (action === TRADE_ACTION.BUY) {
@@ -389,7 +396,7 @@ export function AssetTradePanel({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
               <span style={{ color: 'var(--text-muted)' }}>Available Cash:</span>
               <span style={{ fontWeight: 700 }}>
-                {formatCurrency(maxCash, account.currency)}
+                {formatCurrency(account.cashUSD, account.currency)}
               </span>
             </div>
 
@@ -414,12 +421,14 @@ export function AssetTradePanel({
                 <input
                   className="input"
                   type="number"
-                  placeholder="Amount in USD"
-                  value={quickAmountUSD}
-                  onChange={e => setQuickAmountUSD(e.target.value)}
+                  placeholder={`Amount in ${account.currency}`}
+                  value={quickAmount}
+                  onChange={e => setQuickAmount(e.target.value)}
                   style={{ width: '100%', fontSize: 12, paddingLeft: 22 }}
                 />
-                <span style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)' }}>$</span>
+                <span style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)' }}>
+                  {curConfig.symbol}
+                </span>
               </div>
               {/* BUY — explicitly passes TRADE_ACTION.BUY so handler is unambiguous */}
               <button
@@ -444,7 +453,7 @@ export function AssetTradePanel({
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)' }}>
-              <span>Est. Qty: {currentPrice > 0 ? ((parseFloat(quickAmountUSD) || 0) / (currentPrice * getAssetUSDMultiplier(asset.symbol))).toFixed(4) : '0'}</span>
+              <span>Est. Qty: {currentPrice > 0 ? ((((parseFloat(quickAmount) || 0) / curConfig.usdRate)) / (currentPrice * getAssetUSDMultiplier(asset.symbol))).toFixed(4) : '0'}</span>
               <button
                 type="button"
                 onClick={onOpenFullTradeModal}

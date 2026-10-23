@@ -2,6 +2,20 @@
 
 All notable changes to DailyTrade documented in this file.
 
+## [1.3.0] - 2026-10-23
+
+### Added
+- **Interactive Chart SL/TP Drag Controls**: Directly grab, slide, and adjust Stop Loss (red) and Take Profit (green) price levels on live candlestick charts with instant visual price updates.
+- **Seamless System Upgrade Experience**: Enhanced full-screen upgrade view with real-time download tracking right inside the action button, automatic package preparation, and 1-tap installation.
+- **Zero-Dependency Markdown Engine**: Crisp typography parsing for release notes with clean font hierarchy, high-contrast monospace tags, and zero clutter.
+
+### Enhanced & Optimized
+- **Ultra-Smooth Chart Loading & Timeframe Transitions**: Swapping timeframes (1m to 1h) or exploring assets now retains previous chart data seamlessly in the background, eliminating blank screen flashes on mobile displays.
+- **High-Availability Market Feeds**: Enhanced multi-tier routing with persistent circuit-breaking so real-time prices remain calm, accurate, and continuous worldwide without network disruptions.
+- **Mobile Viewport Optimization**: Notch-safe layout and pinned live countdown timers keeping every tick and candle close countdown permanently in view across all phone screen sizes.
+
+---
+
 ## [1.2.9] - 2026-10-15
 
 ### Added

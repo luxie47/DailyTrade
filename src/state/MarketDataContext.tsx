@@ -9,6 +9,7 @@ import {
   subscribeLiveQuote,
   subscribeAllQuotes,
   startSyntheticTicks,
+  getBaselinePrice,
 } from '../services/marketData';
 
 interface MarketDataContextValue {
@@ -78,7 +79,7 @@ export function MarketDataProvider({
   useEffect(() => {
     const controller = new AbortController();
     setLoadingCandles(true);
-    setCandles([]);
+    // Keep existing candles visible while loading new data to avoid blank chart flash on phones
     const isCrypto = selectedAsset.class === 'crypto';
     const loadCandles = isCrypto
       ? fetchBinanceCandles(selectedAsset.quoteSymbol, timeframe, controller.signal)
@@ -100,11 +101,40 @@ export function MarketDataProvider({
     let stopSynthetic: (() => void) | null = null;
 
     if (isCrypto) {
+      let cancelled = false;
+      let stopCryptoSynthetic: (() => void) | null = null;
+      let receivedWSQuote = false;
+
+      const yahooSymbol = selectedAsset.quoteSymbol.replace('USDT', '-USD');
+      fetchYahooQuote(yahooSymbol).then(q => {
+        if (cancelled || !q?.price) return;
+        setLivePrice(q.price);
+        updatePrices({ [selectedAsset.symbol]: q.price });
+
+        if (!receivedWSQuote && !stopCryptoSynthetic) {
+          stopCryptoSynthetic = startSyntheticTicks(selectedAsset.symbol, q.price, (price) => {
+            if (cancelled || receivedWSQuote) return;
+            setLivePrice(price);
+            updatePrices({ [selectedAsset.symbol]: price });
+          }, 1500);
+        }
+      });
+
       const unsub = subscribeLiveQuote(selectedAsset.symbol, (q) => {
+        receivedWSQuote = true;
+        if (stopCryptoSynthetic) {
+          stopCryptoSynthetic();
+          stopCryptoSynthetic = null;
+        }
         setLivePrice(q.price);
         updatePrices({ [selectedAsset.symbol]: q.price });
       });
-      return unsub;
+
+      return () => {
+        cancelled = true;
+        stopCryptoSynthetic?.();
+        unsub();
+      };
     } else {
       let cancelled = false;
       const existingPrice = prices[selectedAsset.symbol];
