@@ -59,6 +59,12 @@ export async function requestNotificationPermission(): Promise<boolean> {
 let notifId = 1000;
 export async function dispatchSystemNotification(title: string, body: string): Promise<void> {
   try {
+    const check = await LocalNotifications.checkPermissions();
+    if (check.display !== 'granted') {
+      const req = await LocalNotifications.requestPermissions();
+      if (req.display !== 'granted') return;
+    }
+
     await LocalNotifications.schedule({
       notifications: [{
         id: notifId++,

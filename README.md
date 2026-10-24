@@ -10,7 +10,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-8.x-646cff.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Capacitor](https://img.shields.io/badge/Capacitor-Android-119eff.svg?logo=capacitor&logoColor=white)](https://capacitorjs.com/)
-[![Android APK](https://img.shields.io/badge/APK-v1.3.1-3DDC84.svg?logo=android&logoColor=white)](https://github.com/luxie47/DailyTrade/releases/download/v1.3.1/DailyTrade.apk)
+[![Android APK](https://img.shields.io/badge/APK-v1.3.2-3DDC84.svg?logo=android&logoColor=white)](https://github.com/luxie47/DailyTrade/releases/download/v1.3.2/DailyTrade.apk)
 [![TradingView Charts](https://img.shields.io/badge/Powered%20By-Lightweight%20Charts-00e676.svg)](https://tradingview.github.io/lightweight-charts/)
 [![Get it on Orion Store](https://img.shields.io/badge/Get%20it%20on-Orion%20Store-7c3aed.svg)](https://rookieenough.github.io/Orion-Data/redirect.html?id=dailytrade)
 [![Build APK](https://github.com/luxie47/DailyTrade/actions/workflows/build-apk.yml/badge.svg)](.github/workflows/build-apk.yml)
@@ -20,7 +20,7 @@
 **A high-performance, minimalist paper trading simulator with real live market feeds and zero real money involved.**  
 *Practice trading stocks, crypto, crude oil, forex, index mutual funds, and fixed deposits with zero risk.*
 
-[Download v1.3.1 APK](https://github.com/luxie47/DailyTrade/releases/download/v1.3.1/DailyTrade.apk) • [Get it on Orion Store](https://rookieenough.github.io/Orion-Data/redirect.html?id=dailytrade) • [Featured Project: DailyFlow](https://dailyflow-luxie.vercel.app) • [Star on GitHub](https://github.com/luxie47/DailyTrade) • [Features](#-features) • [Data Flow](#-architecture--data-flow) • [Roadmap](#-secure-roadmap) • [Disclaimer](#-legal--financial-disclaimer)
+[Download v1.3.2 APK](https://github.com/luxie47/DailyTrade/releases/download/v1.3.2/DailyTrade.apk) • [Get it on Orion Store](https://rookieenough.github.io/Orion-Data/redirect.html?id=dailytrade) • [Featured Project: DailyFlow](https://dailyflow-luxie.vercel.app) • [Star on GitHub](https://github.com/luxie47/DailyTrade) • [Features](#-features) • [Data Flow](#-architecture--data-flow) • [Roadmap](#-secure-roadmap) • [Disclaimer](#-legal--financial-disclaimer)
 
 <br/>
 
@@ -79,13 +79,15 @@ If you find DailyTrade helpful or want to support ongoing open-source developmen
 ## ✨ Features
 
 * **100% Free & Open Source**: No sign-ups, no subscriptions, zero paywalls, zero telemetry.
+* **Seamless In-App Package Installer & Orion-Style Progress (v1.3.2)**: Integrated background APK download with real-time download percentage and transfer progress directly inside the action button, followed by instant native Android package installation via `FileProvider` (`Intent.ACTION_VIEW` for `application/vnd.android.package-archive`) without redirecting to external web browsers.
+* **Automated Update Push Notifications & Deduplication (v1.3.2)**: Android system-level notifications dispatched when a new build is detected on GitHub, featuring on-device version deduplication so traders are never spammed.
+* **Mobile Touch Order Block Controls (v1.3.2)**: Touch-safe chart drawing overlay with pointer capture (`touchAction: none`), 32px touch-safe stretch hitboxes, centered grab pills, inverted-edge guards, and deferred state persistence for seamless zone drawing and resizing on phone screens.
+* **Multi-Format Release Notes Parser (v1.3.2)**: Markdown parser that cleanly isolates version sections and renders release highlights with illuminated bold tags and monospace code badges.
 * **Interactive Order Block & Supply/Demand Zones (v1.3.1)**: Dedicated `[▭ ZONE]` drawing engine integrated directly onto the Lightweight Charts canvas. Traders can drag across price candles to map out Institutional Supply (red) and Demand (green) zones, complete with vertical boundary adjustments, custom labels, and persistent per-symbol storage.
 * **Formal Chart Trade Level Controls & POSITIONS Toggle (v1.3.1)**: Illuminated toolbar switch allowing traders to toggle all trade visual elements (entry lines, SL/TP dashed lines, limit order lines, and draggable chips) on and off across both Candlestick (OHLC) and Line (Area) chart modes with full canvas memory recycling and localStorage persistence.
 * **Dynamic P&L Projections & Floating Order Chips (v1.3.1)**: Left-aligned draggable badges on the chart canvas displaying live dollar projections (`SL -$XX.XX` / `TP +$XX.XX`), execution lot sizes, and one-tap order cancellation directly from the chart.
 * **Pre-Trade Dollar Profit & Loss Estimation (v1.3.1)**: Trade entry modal dynamically calculates and renders real-time estimated profit (`+$XX.XX` in emerald green) and loss (`-$XX.XX` in crimson red) tags as you type Stop Loss or Take Profit targets, powered by asset contract specs, lot sizing, and currency multipliers.
 * **Interactive Chart SL/TP Drag Controls (v1.3.0)**: Directly grab and vertically slide Stop Loss (red) and Take Profit (green) dashed price lines on candlestick charts with real-time price snapping and auto-saved protective levels.
-* **In-App System Upgrade Engine (v1.3.0)**: Full-screen OLED upgrade modal with camera notch safe padding, real-time download progress tracking directly inside the action button, automatic APK file verification, and 1-tap installation directly from Files.
-* **Zero-Dependency Markdown Engine (v1.3.0)**: Lightweight, HTML-sanitized markdown formatting engine for release notes and update summaries with bold, italic, code tags, and zero npm dependencies.
 * **Ultra-Smooth Chart Loading & Zero Blank Flash (v1.3.0)**: Retains existing chart data in memory while switching timeframes or assets, eliminating white/black blank screen flashes on mobile displays.
 * **Persistent Regional Circuit Breaker (v1.3.0)**: Resilient fallback engine with `localStorage` and `sessionStorage` state caching across app restarts, eliminating network hangs in regions with ISP-throttled or DNS-blocked feeds.
 * **Exness-Style Lot Sizing Engine (v1.2.9)**: Institutional contract specifications (Forex: 100,000 units/lot with 1:100 leverage; Crypto: 1.0 unit/lot with 1:10 leverage; Commodities: 100 units/lot with 1:50 leverage; Stocks: 1.0 unit/lot with 1:5 leverage). Interactive quick-lot chips (`0.01` to `1.00`), micro-steppers, and dynamic pre-trade required margin previews.
@@ -127,40 +129,46 @@ If you find DailyTrade helpful or want to support ongoing open-source developmen
 DailyTrade is architected to operate with **zero backend dependencies**, **zero API costs**, and **100% on-device privacy**:
 
 ```
- ┌────────────────────────────────────────────────────────┐
- │                    DailyTrade Client                   │
- │                                                        │
- │  ┌─────────────────┐ ┌───────────────┐ ┌────────────┐  │
- │  │ TradingView     │ │ LocalStorage  │ │ Execution  │  │
- │  │ Lightweight V5  │ │ Engine & OCO  │ │ Engine     │  │
- │  └────────▲────────┘ └───────▲───────┘ └──────▲─────┘  │
- └───────────┼──────────────────┼────────────────┼────────┘
-             │                  │                │
-      Live Price Ticks          │        Order Execution
-             │                  │
- ┌───────────┴──────────────────┴─────────────────────────┐
- │               Zero-CORS Market Ingestion               │
- ├────────────────────────────┬───────────────────────────┤
- │     Crypto Assets          │   Global Equities / Forex │
- │     (Sub-Second Live)      │   (Candles & Quotes)      │
- │  ┌──────────────────────┐  │  ┌──────────────────────┐ │
- │  │  Binance WebSocket   │  │  │    Yahoo Finance     │ │
- │  │  wss://stream        │  │  │  Native direct / CORS│ │
- │  └──────────────────────┘  │  └──────────────────────┘ │
- └────────────────────────────┴───────────────────────────┘
+ ┌────────────────────────────────────────────────────────────────────────┐
+ │                           DailyTrade Client                            │
+ │                                                                        │
+ │  ┌─────────────────┐ ┌────────────────┐ ┌─────────────┐ ┌───────────┐  │
+ │  │ Lightweight V5  │ │ Touch Gesture  │ │ Execution   │ │ In-App    │  │
+ │  │ Canvas & Zones  │ │ Overlay (SVG)  │ │ & OCO Engine│ │ Installer │  │
+ │  └────────▲────────┘ └───────▲────────┘ └──────▲──────┘ └─────▲─────┘  │
+ └───────────┼──────────────────┼─────────────────┼──────────────┼────────┘
+             │                  │                 │              │
+      Live Price Ticks          │         Order Execution        │
+             │                  │                                │
+ ┌───────────┴──────────────────┴─────────────┐ ┌────────────────┴────────┐
+ │        Zero-CORS Market Ingestion          │ │  Capacitor Native Layer │
+ ├─────────────────────┬──────────────────────┤ ├─────────────────────────┤
+ │    Crypto Feed      │ Global Equities/Forex│ │ WidgetBridgePlugin.java │
+ │ (Sub-Second Live)   │  (Candles & Quotes)  │ │ FileProvider Installer  │
+ │ ┌─────────────────┐ │ ┌──────────────────┐ │ │ LocalNotifications API  │
+ │ │Binance WebSocket│ │ │  Yahoo Finance   │ │ │ App Widgets (2x1, 2x2)  │
+ │ └─────────────────┘ │ └──────────────────┘ │ └─────────────────────────┘
+ └─────────────────────┴──────────────────────┘
 ```
 
 1. **Crypto Feed**: Connects via native WebSocket to Binance (`wss://stream.binance.com:9443`). Ticks arrive in real-time (< 200ms) with zero rate limits. In regions with ISP-throttled or DNS-blocked Binance endpoints, a persistent circuit-breaker automatically redirects to real Yahoo Finance quotes and calm synthetic micro-ticks with zero user-perceptible delay.
 2. **Global Stocks & Commodities**:
    - In the **Android APK**: Capacitor's native HTTP layer bypasses CORS restrictions and pulls quotes straight from `query1.finance.yahoo.com`.
    - In the **Web Browser**: Transparent fallback proxies ensure uninterrupted candle streaming.
-3. **Execution Engine**:
-   - Evaluates open positions and pending limit orders on every single tick.
-   - Triggers Stop Loss and Take Profit levels automatically.
-   - Cleans up orphaned orders using One-Cancels-the-Other (OCO) logic.
-4. **In-App System Upgrade Engine**:
-   - Polling against GitHub Releases API with automated semver evaluation.
-   - In-button download percentage tracking and direct Android Package Installer invocation from Files.
+3. **Execution & Margin Engine**:
+   - Evaluates open positions, floating P&L, and pending limit orders on every single tick.
+   - Triggers Stop Loss and Take Profit levels automatically with direction-aware short selling.
+   - Performs upfront margin checks and cleans up orphaned orders using One-Cancels-the-Other (OCO) logic.
+4. **Native In-App Updater & Package Installer (`FileProvider`)**:
+   - Automated polling against the GitHub Releases API with semver evaluation (`useAppUpdate`).
+   - Downloads new APK releases chunk-by-chunk via `@capacitor/filesystem` directly to app storage with live percentage progress rendered inside the action button.
+   - Invokes `WidgetBridgePlugin.installApk()` via Android's `FileProvider.getUriForFile()`, passing `Intent.FLAG_GRANT_READ_URI_PERMISSION` to launch the native package installer prompt immediately without external browser redirects.
+5. **Touch-Safe Chart Gesture & Drawing Engine**:
+   - Dedicated SVG drawing layer with `touchAction: none` and native `setPointerCapture` for jitter-free Order Block zone creation on touchscreens.
+   - 32px touch-friendly edge handles, centered grab pills, and inverted-boundary guards with deferred local storage persistence.
+6. **System Push Notifications & Version Deduplication**:
+   - Android 13+ compliant system alerts dispatched via `@capacitor/local-notifications`.
+   - On-device version tracking (`localStorage`) prevents redundant update alert spam.
 
 ---
 

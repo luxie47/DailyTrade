@@ -90,6 +90,7 @@ export function MarketDataProvider({
       setLoadingCandles(false);
     }).catch(() => {
       // Aborted or fallback
+      setLoadingCandles(false);
     });
 
     return () => controller.abort();
@@ -98,7 +99,6 @@ export function MarketDataProvider({
   // Subscribe live price for selected asset
   useEffect(() => {
     const isCrypto = selectedAsset.class === 'crypto';
-    let stopSynthetic: (() => void) | null = null;
 
     if (isCrypto) {
       let cancelled = false;
@@ -137,7 +137,13 @@ export function MarketDataProvider({
       };
     } else {
       let cancelled = false;
-      const initialPrice = prices[selectedAsset.symbol] ?? getBaselinePrice(selectedAsset.symbol);
+      let cachedPrice: number | null = null;
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.PRICES_CACHE);
+        if (raw) cachedPrice = JSON.parse(raw)[selectedAsset.symbol];
+      } catch { /* ok */ }
+
+      const initialPrice = cachedPrice ?? getBaselinePrice(selectedAsset.symbol);
       if (initialPrice && initialPrice > 0) {
         setLivePrice(initialPrice);
       }
@@ -165,7 +171,7 @@ export function MarketDataProvider({
         clearInterval(pollTimer);
       };
     }
-  }, [selectedAsset, updatePrices, prices]);
+  }, [selectedAsset, updatePrices]);
 
   return (
     <MarketDataContext.Provider

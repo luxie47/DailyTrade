@@ -2,6 +2,22 @@
 
 All notable changes to DailyTrade documented in this file.
 
+## [1.3.2] - 2026-10-24
+
+### Added
+- **In-App Package Installer & Orion-Style Progress**: Integrated background APK download with real-time percentage progress displayed directly inside the action button, followed by an immediate native Android package installation prompt via `FileProvider` without redirecting to external web browsers.
+- **Automated Update Push Notifications**: System-level local notifications dispatched when a new release build is available, featuring persistent version deduplication to avoid repetitive alerts.
+
+### Enhanced & Optimized
+- **Mobile Touch Order Block Controls**: Upgraded chart drawing overlay with pointer capture (`touchAction: none`), 32px touch-safe stretch hitboxes, centered grab pills, and inverted-edge guards for seamless box drawing and resizing on phone screens.
+- **Resilient Release Notes Parser**: Robust multi-format markdown parser that cleanly extracts changelog highlights and formatted markdown tags directly from GitHub releases.
+
+### Fixed
+- **Order Margin Validation**: Added upfront required margin checks for direct short orders to protect against over-leveraged entries.
+- **Area/Line Chart Series Binding**: Resolved series reference mismatch across candlestick and area chart display modes.
+
+---
+
 ## [1.3.1] - 2026-10-23
 
 ### Added

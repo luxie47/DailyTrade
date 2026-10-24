@@ -13,7 +13,7 @@ export interface ChartZone {
 
 interface Props {
   chart: IChartApi | null;
-  series: ISeriesApi<'Candlestick'> | null;
+  series: ISeriesApi<any> | null;
   symbol: string;
   isDrawing: boolean;
   onDrawingComplete: () => void;
@@ -45,15 +45,6 @@ export function ChartDrawingOverlay({
   const [dragPreview, setDragPreview] = useState<{ startY: number; currentY: number } | null>(null);
   const [adjustingEdge, setAdjustingEdge] = useState<{ zoneId: string; edge: 'top' | 'bottom' } | null>(null);
   const [, setRenderTrigger] = useState(0);
-
-  // Sync to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem(`${STORAGE_KEY_PREFIX}${symbol}`, JSON.stringify(zones));
-    } catch {
-      // ignore
-    }
-  }, [zones, symbol]);
 
   // Reload when symbol changes
   useEffect(() => {
@@ -88,7 +79,14 @@ export function ChartDrawingOverlay({
     const rect = containerRef.current.getBoundingClientRect();
     const y = e.clientY - rect.top;
     setDragPreview({ startY: y, currentY: y });
-    try { (e.target as HTMLElement).setPointerCapture?.(e.pointerId); } catch { /* ok */ }
+    try { (e.target as Element).setPointerCapture?.(e.pointerId); } catch { /* ok */ }
+  };
+
+  // Start stretching top or bottom edge of an existing zone
+  const handleEdgePointerDown = (e: React.PointerEvent, zoneId: string, edge: 'top' | 'bottom') => {
+    e.stopPropagation();
+    setAdjustingEdge({ zoneId, edge });
+    try { (e.currentTarget as Element).setPointerCapture?.(e.pointerId); } catch { /* ok */ }
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
@@ -104,9 +102,17 @@ export function ChartDrawingOverlay({
         setZones(prev => prev.map(z => {
           if (z.id !== adjustingEdge.zoneId) return z;
           if (adjustingEdge.edge === 'top') {
-            return { ...z, topPrice: Math.max(newPrice, z.bottomPrice) };
+            if (newPrice < z.bottomPrice) {
+              setAdjustingEdge({ zoneId: z.id, edge: 'bottom' });
+              return { ...z, topPrice: z.bottomPrice, bottomPrice: newPrice };
+            }
+            return { ...z, topPrice: newPrice };
           } else {
-            return { ...z, bottomPrice: Math.min(newPrice, z.topPrice) };
+            if (newPrice > z.topPrice) {
+              setAdjustingEdge({ zoneId: z.id, edge: 'top' });
+              return { ...z, bottomPrice: z.topPrice, topPrice: newPrice };
+            }
+            return { ...z, bottomPrice: newPrice };
           }
         }));
       }
@@ -114,11 +120,11 @@ export function ChartDrawingOverlay({
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
+    try { (e.target as Element).releasePointerCapture?.(e.pointerId); } catch { /* ok */ }
     if (isDrawing && dragPreview && containerRef.current && series) {
       const p1 = series.coordinateToPrice(dragPreview.startY);
       const p2 = series.coordinateToPrice(dragPreview.currentY);
       setDragPreview(null);
-      try { (e.target as HTMLElement).releasePointerCapture?.(e.pointerId); } catch { /* ok */ }
 
       if (p1 && p2 && Math.abs(p1 - p2) > 0) {
         const top = Math.max(p1, p2);
@@ -130,7 +136,9 @@ export function ChartDrawingOverlay({
           type: dragPreview.startY > dragPreview.currentY ? 'supply' : 'demand',
           label: dragPreview.startY > dragPreview.currentY ? 'SUPPLY OB' : 'DEMAND OB',
         };
-        setZones(prev => [...prev, newZone]);
+        const nextZones = [...zones, newZone];
+        setZones(nextZones);
+        try { localStorage.setItem(`${STORAGE_KEY_PREFIX}${symbol}`, JSON.stringify(nextZones)); } catch { /* ok */ }
         setActiveZoneId(newZone.id);
         onDrawingComplete();
       }
@@ -138,22 +146,27 @@ export function ChartDrawingOverlay({
 
     if (adjustingEdge) {
       setAdjustingEdge(null);
+      try { localStorage.setItem(`${STORAGE_KEY_PREFIX}${symbol}`, JSON.stringify(zones)); } catch { /* ok */ }
     }
   };
 
   const handleDeleteZone = (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    setZones(prev => prev.filter(z => z.id !== id));
+    const nextZones = zones.filter(z => z.id !== id);
+    setZones(nextZones);
+    try { localStorage.setItem(`${STORAGE_KEY_PREFIX}${symbol}`, JSON.stringify(nextZones)); } catch { /* ok */ }
     if (activeZoneId === id) setActiveZoneId(null);
   };
 
   const handleToggleType = (id: string, type: 'demand' | 'supply' | 'neutral', e?: React.MouseEvent) => {
     e?.stopPropagation();
-    setZones(prev => prev.map(z => z.id === id ? {
+    const nextZones = zones.map(z => z.id === id ? {
       ...z,
       type,
       label: type === 'demand' ? 'DEMAND OB' : type === 'supply' ? 'SUPPLY OB' : 'KEY ZONE',
-    } : z));
+    } : z);
+    setZones(nextZones);
+    try { localStorage.setItem(`${STORAGE_KEY_PREFIX}${symbol}`, JSON.stringify(nextZones)); } catch { /* ok */ }
   };
 
   if (!series || !containerRef.current) return null;
@@ -163,7 +176,8 @@ export function ChartDrawingOverlay({
       style={{
         position: 'absolute',
         inset: 0,
-        pointerEvents: isDrawing ? 'auto' : 'none',
+        pointerEvents: isDrawing || adjustingEdge !== null ? 'auto' : 'none',
+        touchAction: 'none',
         zIndex: 20,
         overflow: 'hidden',
       }}
@@ -177,6 +191,7 @@ export function ChartDrawingOverlay({
           width: '100%',
           height: '100%',
           display: 'block',
+          touchAction: 'none',
         }}
       >
         <defs>
@@ -201,7 +216,7 @@ export function ChartDrawingOverlay({
           if (yTop == null || yBottom == null || isNaN(yTop) || isNaN(yBottom)) return null;
 
           const topY = Math.min(yTop, yBottom);
-          const height = Math.max(8, Math.abs(yBottom - yTop));
+          const height = Math.max(10, Math.abs(yBottom - yTop));
           const isSelected = activeZoneId === zone.id;
 
           const strokeColor = zone.type === 'demand'
@@ -217,7 +232,7 @@ export function ChartDrawingOverlay({
             : 'url(#neutralGrad)';
 
           return (
-            <g key={zone.id} style={{ pointerEvents: 'auto', cursor: isDrawing ? 'crosshair' : 'pointer' }}>
+            <g key={zone.id} style={{ pointerEvents: 'auto', touchAction: 'none' }}>
               {/* Main Zone Box */}
               <rect
                 x={0}
@@ -228,6 +243,7 @@ export function ChartDrawingOverlay({
                 stroke={strokeColor}
                 strokeWidth={isSelected ? 1.5 : 1}
                 strokeDasharray={isSelected ? '4,2' : undefined}
+                style={{ cursor: isDrawing ? 'crosshair' : 'pointer' }}
                 onClick={e => {
                   e.stopPropagation();
                   setActiveZoneId(prev => prev === zone.id ? null : zone.id);
@@ -243,41 +259,94 @@ export function ChartDrawingOverlay({
                 fontFamily="var(--font-mono)"
                 fontWeight={700}
                 letterSpacing="0.04em"
-                style={{ userSelect: 'none' }}
+                style={{ userSelect: 'none', pointerEvents: 'none' }}
               >
                 {zone.label || (zone.type === 'demand' ? 'DEMAND ZONE' : 'SUPPLY ZONE')} • {formatAssetPrice(zone.topPrice, symbol)} - {formatAssetPrice(zone.bottomPrice, symbol)}
               </text>
 
               {/* Interactive Resize Edge Handles when Selected */}
               {isSelected && (
-                <>
-                  <line
-                    x1={0}
-                    y1={topY}
-                    x2="100%"
-                    y2={topY}
-                    stroke={strokeColor}
-                    strokeWidth={4}
-                    style={{ cursor: 'ns-resize' }}
-                    onPointerDown={e => {
-                      e.stopPropagation();
-                      setAdjustingEdge({ zoneId: zone.id, edge: 'top' });
-                    }}
-                  />
-                  <line
-                    x1={0}
-                    y1={topY + height}
-                    x2="100%"
-                    y2={topY + height}
-                    stroke={strokeColor}
-                    strokeWidth={4}
-                    style={{ cursor: 'ns-resize' }}
-                    onPointerDown={e => {
-                      e.stopPropagation();
-                      setAdjustingEdge({ zoneId: zone.id, edge: 'bottom' });
-                    }}
-                  />
-                </>
+                <g style={{ touchAction: 'none' }}>
+                  {/* Top Edge Resize Group */}
+                  <g
+                    style={{ cursor: 'ns-resize', touchAction: 'none' }}
+                    onPointerDown={e => handleEdgePointerDown(e, zone.id, 'top')}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onPointerCancel={handlePointerUp}
+                  >
+                    {/* 32px Generous Invisible Hit Target for Finger / Mouse */}
+                    <line
+                      x1={0}
+                      y1={topY}
+                      x2="100%"
+                      y2={topY}
+                      stroke="transparent"
+                      strokeWidth={32}
+                    />
+                    {/* Visual Dashed Line */}
+                    <line
+                      x1={0}
+                      y1={topY}
+                      x2="100%"
+                      y2={topY}
+                      stroke={strokeColor}
+                      strokeWidth={2}
+                      strokeDasharray="4,3"
+                    />
+                    {/* Centered Visual Grab Pill */}
+                    <rect
+                      x="calc(50% - 24px)"
+                      y={topY - 4}
+                      width={48}
+                      height={8}
+                      rx={4}
+                      fill={strokeColor}
+                      stroke="#000000"
+                      strokeWidth={1.5}
+                    />
+                  </g>
+
+                  {/* Bottom Edge Resize Group */}
+                  <g
+                    style={{ cursor: 'ns-resize', touchAction: 'none' }}
+                    onPointerDown={e => handleEdgePointerDown(e, zone.id, 'bottom')}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onPointerCancel={handlePointerUp}
+                  >
+                    {/* 32px Generous Invisible Hit Target for Finger / Mouse */}
+                    <line
+                      x1={0}
+                      y1={topY + height}
+                      x2="100%"
+                      y2={topY + height}
+                      stroke="transparent"
+                      strokeWidth={32}
+                    />
+                    {/* Visual Dashed Line */}
+                    <line
+                      x1={0}
+                      y1={topY + height}
+                      x2="100%"
+                      y2={topY + height}
+                      stroke={strokeColor}
+                      strokeWidth={2}
+                      strokeDasharray="4,3"
+                    />
+                    {/* Centered Visual Grab Pill */}
+                    <rect
+                      x="calc(50% - 24px)"
+                      y={topY + height - 4}
+                      width={48}
+                      height={8}
+                      rx={4}
+                      fill={strokeColor}
+                      stroke="#000000"
+                      strokeWidth={1.5}
+                    />
+                  </g>
+                </g>
               )}
             </g>
           );
@@ -298,19 +367,26 @@ export function ChartDrawingOverlay({
         )}
       </svg>
 
-      {/* Floating Action Menu for Selected Zone */}
-      {activeZoneId && (() => {
+      {/* Floating Action Menu for Selected Zone (hidden while actively dragging edges) */}
+      {activeZoneId && !adjustingEdge && !isDrawing && (() => {
         const zone = zones.find(z => z.id === activeZoneId);
         if (!zone) return null;
         const yTop = series.priceToCoordinate(zone.topPrice);
+        const yBottom = series.priceToCoordinate(zone.bottomPrice);
         if (yTop == null || isNaN(yTop)) return null;
+
+        const minY = Math.min(yTop, yBottom ?? yTop);
+        const maxY = Math.max(yTop, yBottom ?? yTop);
+        // Position cleanly above zone if room, or below if near top
+        const menuTop = minY > 54 ? minY - 38 : maxY + 14;
 
         return (
           <div
             style={{
               position: 'absolute',
-              top: `${Math.max(6, Math.min(yTop - 32, (isFullscreen ? window.innerHeight - 150 : 250)))}px`,
-              left: 12,
+              top: `${Math.max(8, Math.min(menuTop, (isFullscreen ? window.innerHeight - 150 : 250)))}px`,
+              left: '50%',
+              transform: 'translateX(-50%)',
               zIndex: 35,
               display: 'flex',
               alignItems: 'center',
@@ -322,6 +398,8 @@ export function ChartDrawingOverlay({
               backdropFilter: 'blur(8px)',
               boxShadow: '0 4px 16px rgba(0,0,0,0.6)',
               pointerEvents: 'auto',
+              touchAction: 'none',
+              whiteSpace: 'nowrap',
             }}
           >
             <button
@@ -405,11 +483,12 @@ export function ChartDrawingOverlay({
             fontFamily: 'var(--font-ui)',
             fontSize: 11,
             fontWeight: 700,
-            padding: '3px 10px',
-            borderRadius: 12,
+            padding: '4px 12px',
+            borderRadius: 14,
             boxShadow: '0 2px 10px rgba(0,0,0,0.4)',
             pointerEvents: 'none',
             letterSpacing: '0.02em',
+            whiteSpace: 'nowrap',
           }}
         >
           ▭ Drag on chart to draw Zone

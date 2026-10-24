@@ -60,3 +60,27 @@ export function syncAndroidWidget({
     // Ignore widget sync exceptions if native widget is not installed
   }
 }
+
+export async function installNativeApk(filePath: string): Promise<boolean> {
+  if (!isCapacitorNative()) return false;
+  try {
+    const cap = (window as unknown as {
+      Capacitor?: {
+        Plugins?: {
+          WidgetBridge?: {
+            installApk?: (data: { filePath: string }) => Promise<void>;
+          };
+        };
+      };
+    }).Capacitor;
+
+    const plugin = cap?.Plugins?.WidgetBridge;
+    if (plugin?.installApk) {
+      await plugin.installApk({ filePath });
+      return true;
+    }
+  } catch (err) {
+    console.error('Failed to install APK via native bridge:', err);
+  }
+  return false;
+}

@@ -58,21 +58,22 @@ export function UpdateModal({
         <span
           style={{
             fontFamily: 'var(--font-mono)',
-            fontSize: 11,
+            fontSize: 'clamp(10px, 2.8vw, 11px)',
             fontWeight: 700,
             color: 'var(--color-bull, #00e676)',
             background: 'rgba(0, 230, 118, 0.12)',
             border: '1px solid rgba(0, 230, 118, 0.35)',
-            padding: '4px 14px',
+            padding: '4px 12px',
             borderRadius: 20,
-            letterSpacing: '0.03em',
+            letterSpacing: '0.02em',
             display: 'inline-flex',
             alignItems: 'center',
             gap: 6,
+            maxWidth: '100%',
             whiteSpace: 'nowrap',
           }}
         >
-          UPDATE AVAILABLE · v{currentVersion} <ArrowRight size={11} style={{ display: 'inline' }} /> v{updateInfo.version}
+          UPDATE AVAILABLE · v{currentVersion} <ArrowRight size={11} style={{ display: 'inline', flexShrink: 0 }} /> v{updateInfo.version}
         </span>
       </div>
 
@@ -297,7 +298,7 @@ export function UpdateModal({
               letterSpacing: '0.02em',
             }}
           >
-            APK verified · Tap above to install from Files
+            APK downloaded · Ready to install update
           </p>
         )}
       </div>

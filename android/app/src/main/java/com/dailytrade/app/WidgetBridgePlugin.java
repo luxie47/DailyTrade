@@ -22,4 +22,44 @@ public class WidgetBridgePlugin extends Plugin {
 
         call.resolve();
     }
+
+    @PluginMethod
+    public void installApk(PluginCall call) {
+        String filePath = call.getString("filePath");
+        if (filePath == null || filePath.isEmpty()) {
+            call.reject("File path is required");
+            return;
+        }
+
+        try {
+            java.io.File file;
+            if (filePath.startsWith("file://")) {
+                file = new java.io.File(new java.net.URI(filePath));
+            } else {
+                file = new java.io.File(filePath);
+            }
+
+            if (!file.exists()) {
+                call.reject("APK file does not exist at " + file.getAbsolutePath());
+                return;
+            }
+
+            android.content.Context context = getContext();
+            android.net.Uri contentUri = androidx.core.content.FileProvider.getUriForFile(
+                context,
+                context.getPackageName() + ".fileprovider",
+                file
+            );
+
+            android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_VIEW);
+            intent.setDataAndType(contentUri, "application/vnd.android.package-archive");
+            intent.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+
+            context.startActivity(intent);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to launch installer: " + e.getMessage(), e);
+        }
+    }
 }

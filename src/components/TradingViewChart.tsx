@@ -776,7 +776,7 @@ export function TradingViewChart({
         {/* Native Order Blocks & Supply/Demand Zones Drawing Overlay */}
         <ChartDrawingOverlay
           chart={chartRef.current}
-          series={candleRef.current}
+          series={(chartType === 'area' ? areaRef.current : candleRef.current) as any}
           symbol={rawSymbol || symbol}
           isDrawing={isDrawingZone}
           onDrawingComplete={() => setIsDrawingZone(false)}

@@ -49,7 +49,7 @@ export function TradeModal({ asset, currentPrice, account, positionQty, onMarket
     if (lot <= 0 || isNaN(lot)) { setError('Enter a valid lot size'); return; }
     if (quantityNum <= 0) { setError('Invalid trade quantity'); return; }
 
-    if (side === 'buy' && requiredMargin > account.cashUSD) {
+    if ((side === 'buy' || !hasPosition) && requiredMargin > account.cashUSD) {
       setError(`Insufficient cash for required margin (${formatCurrency(requiredMargin, account.currency)})`);
       return;
     }
